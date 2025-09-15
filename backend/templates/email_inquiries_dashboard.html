@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Inquiries Dashboard - AI Lead Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 0;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-links a:hover, .nav-links a.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        .dashboard-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            color: white;
+        }
+
+        .dashboard-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .dashboard-header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 5px;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 1rem;
+            border: none;
+            background: transparent;
+            color: white;
+            cursor: pointer;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .tab-button.active {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .tab-content {
+            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+        }
+
+        .btn-warning {
+            background: #ed8936;
+            color: white;
+        }
+
+        .btn-info {
+            background: #4299e1;
+            color: white;
+        }
+
+        .email-list {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .email-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 1.5rem;
+            background: white;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .email-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .email-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .email-info h3 {
+            color: #2d3748;
+            margin-bottom: 0.25rem;
+        }
+
+        .email-meta {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .email-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-new {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .status-processed {
+            background: #c6f6d5;
+            color: #276749;
+        }
+
+        .email-body {
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f7fafc;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            max-height: 100px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .email-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+        }
+
+        .quotation-preview {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            white-space: pre-line;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #2d3748;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .loading {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .loading::after {
+            content: '';
+            width: 16px;
+            height: 16px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .success-message {
+            background: #c6f6d5;
+            color: #276749;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .error-message {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .matches-grid {
+            display: grid;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .match-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            background: white;
+        }
+
+        .match-score {
+            float: right;
+            background: #667eea;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .match-reasons {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem;
+            }
+            
+            .nav-container {
+                padding: 0 1rem;
+            }
+            
+            .nav-links {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .dashboard-header h1 {
+                font-size: 2rem;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .email-header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">🤖 AI Lead Management</div>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="/dashboard">Dashboard</a>
+                <a href="/intelligent-offers">Intelligent Offers</a>
+                <a href="/email-inquiries" class="active">Email Inquiries</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="dashboard-header">
+            <h1>📧 Email Inquiries Dashboard</h1>
+            <p>AI-Powered Customer Inquiry Processing & Quotation Generation</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalEmails">0</div>
+                <div class="stat-label">Total Email Inquiries</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="newEmails">0</div>
+                <div class="stat-label">Unprocessed Emails</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="processedEmails">0</div>
+                <div class="stat-label">Processed Inquiries</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="sentQuotations">0</div>
+                <div class="stat-label">Sent Quotations</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-button active" onclick="showTab('inbox')">📥 Inbox</button>
+            <button class="tab-button" onclick="showTab('processed')">✅ Processed</button>
+            <button class="tab-button" onclick="showTab('quotations')">📋 Quotations</button>
+        </div>
+
+        <!-- Inbox Tab -->
+        <div id="inbox" class="tab-content active">
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="fetchEmails()">
+                    <span id="fetchEmailsText">📨 Fetch New Emails</span>
+                </button>
+                <button class="btn btn-info" onclick="loadEmailInquiries()">
+                    🔄 Refresh Inbox
+                </button>
+            </div>
+
+            <div id="emailList" class="email-list">
+                <!-- Email inquiries will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Processed Tab -->
+        <div id="processed" class="tab-content">
+            <h3>Processed Email Inquiries</h3>
+            <div id="processedList" class="email-list">
+                <!-- Processed emails will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Quotations Tab -->
+        <div id="quotations" class="tab-content">
+            <h3>Generated Quotations</h3>
+            <div id="quotationsList" class="email-list">
+                <!-- Generated quotations will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for quotation preview and sending -->
+    <div id="quotationModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; width: 90%; max-width: 800px; max-height: 80%; overflow: auto; border-radius: 15px; padding: 2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2>📋 Quotation Preview</h2>
+                <button onclick="closeQuotationModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+            
+            <div class="quotation-preview" id="quotationPreview">
+                <!-- Quotation content will be loaded here -->
+            </div>
+            
+            <div class="form-group">
+                <label for="recipientEmail">Send to Email:</label>
+                <input type="email" id="recipientEmail" placeholder="customer@example.com">
+            </div>
+            
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button class="btn btn-primary" onclick="sendQuotationEmail()">
+                    <span id="sendQuotationText">📤 Send Quotation</span>
+                </button>
+                <button class="btn" onclick="closeQuotationModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentQuotationId = null;
+        
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadEmailInquiries();
+            loadProcessedQuotations();
+        });
+
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab and mark button as active
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        async function fetchEmails() {
+            const button = document.getElementById('fetchEmailsText');
+            button.innerHTML = '<span class="loading">Fetching Emails...</span>';
+            
+            try {
+                const response = await fetch('/api/fetch-emails', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    showMessage(data.error, 'error');
+                } else {
+                    showMessage(`✅ ${data.message}`, 'success');
+                    loadEmailInquiries();
+                }
+            } catch (error) {
+                showMessage(`❌ Error: ${error.message}`, 'error');
+            } finally {
+                button.textContent = '📨 Fetch New Emails';
+            }
+        }
+
+        async function loadEmailInquiries() {
+            try {
+                const response = await fetch('/api/email-inquiries');
+                const data = await response.json();
+                
+                updateStats(data);
+                displayEmails(data.inquiries);
+                displayProcessedEmails(data.inquiries.filter(email => email.processed));
+                
+            } catch (error) {
+                console.error('Error loading email inquiries:', error);
+                showMessage('❌ Error loading email inquiries', 'error');
+            }
+        }
+
+        function updateStats(data) {
+            const totalEmails = data.inquiries.length;
+            const processedEmails = data.inquiries.filter(email => email.processed).length;
+            const newEmails = totalEmails - processedEmails;
+            
+            document.getElementById('totalEmails').textContent = totalEmails;
+            document.getElementById('newEmails').textContent = newEmails;
+            document.getElementById('processedEmails').textContent = processedEmails;
+        }
+
+        function displayEmails(emails) {
+            const emailList = document.getElementById('emailList');
+            
+            if (emails.length === 0) {
+                emailList.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #666;">
+                        📭 No email inquiries found. Click "Fetch New Emails" to get started.
+                    </div>
+                `;
+                return;
+            }
+            
+            emailList.innerHTML = emails.map(email => `
+                <div class="email-card">
+                    <div class="email-header">
+                        <div class="email-info">
+                            <h3>${email.subject}</h3>
+                            <div class="email-meta">
+                                From: ${email.sender_name} (${email.sender_email})<br>
+                                Date: ${new Date(email.timestamp).toLocaleString()}
+                            </div>
+                        </div>
+                        <div class="email-status ${email.processed ? 'status-processed' : 'status-new'}">
+                            ${email.processed ? 'Processed' : 'New'}
+                        </div>
+                    </div>
+                    
+                    <div class="email-body">
+                        ${email.body.substring(0, 200)}...
+                    </div>
+                    
+                    <div class="email-actions">
+                        ${!email.processed ? `
+                            <button class="btn btn-primary btn-sm" onclick="processEmail('${email.email_id}')">
+                                🔍 Process Email
+                            </button>
+                        ` : `
+                            <button class="btn btn-success btn-sm" onclick="generateQuotation('${email.email_id}')">
+                                📋 Generate Quotation
+                            </button>
+                        `}
+                        <button class="btn btn-info btn-sm" onclick="viewEmailDetails('${email.email_id}')">
+                            👁️ View Details
+                        </button>
+                    </div>
+                    
+                    ${email.matching_products && email.matching_products.length > 0 ? `
+                        <div class="matches-grid">
+                            <h4 style="margin: 1rem 0 0.5rem 0;">🎯 AI Product Matches:</h4>
+                            ${email.matching_products.slice(0, 3).map(product => `
+                                <div class="match-card">
+                                    <div class="match-score">${product.match_score}%</div>
+                                    <strong>${product.product_name}</strong>
+                                    <div style="font-size: 0.9rem; color: #666; margin-top: 0.25rem;">
+                                        ${product.description}
+                                    </div>
+                                    <div class="match-reasons">
+                                        ${product.match_reasons.join(', ')}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function displayProcessedEmails(processedEmails) {
+            const processedList = document.getElementById('processedList');
+            
+            if (processedEmails.length === 0) {
+                processedList.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #666;">
+                        📋 No processed emails yet.
+                    </div>
+                `;
+                return;
+            }
+            
+            processedList.innerHTML = processedEmails.map(email => `
+                <div class="email-card">
+                    <h3>${email.subject}</h3>
+                    <div class="email-meta">
+                        From: ${email.sender_name} (${email.sender_email})<br>
+                        Processed: ${new Date(email.processing_timestamp).toLocaleString()}
+                    </div>
+                    
+                    ${email.extracted_requirements ? `
+                        <div style="margin: 1rem 0; padding: 1rem; background: #f7fafc; border-radius: 8px;">
+                            <h4>📋 Extracted Requirements:</h4>
+                            <ul style="margin: 0.5rem 0 0 1rem;">
+                                <li><strong>Product Type:</strong> ${email.extracted_requirements.product_type}</li>
+                                <li><strong>Industry:</strong> ${email.extracted_requirements.industry}</li>
+                                <li><strong>Quantity:</strong> ${email.extracted_requirements.quantity}</li>
+                                <li><strong>Timeline:</strong> ${email.extracted_requirements.timeline}</li>
+                                <li><strong>Budget:</strong> ${email.extracted_requirements.budget_range}</li>
+                            </ul>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="email-actions">
+                        <button class="btn btn-success btn-sm" onclick="generateQuotation('${email.email_id}')">
+                            📋 Generate Quotation
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function processEmail(emailId) {
+            try {
+                showMessage('🔍 Processing email with AI...', 'info');
+                
+                const response = await fetch(`/api/process-email/${emailId}`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    showMessage(`❌ Error: ${data.error}`, 'error');
+                } else {
+                    showMessage(`✅ Email processed successfully! Found ${data.total_matches} matching products.`, 'success');
+                    loadEmailInquiries();
+                }
+            } catch (error) {
+                showMessage(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function generateQuotation(emailId) {
+            try {
+                showMessage('📋 Generating quotation...', 'info');
+                
+                const response = await fetch('/api/generate-quotation-from-email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email_id: emailId,
+                        selected_products: [] // Auto-select based on matches
+                    })
+                });
+                
+                const quotation = await response.json();
+                
+                if (quotation.error) {
+                    showMessage(`❌ Error: ${quotation.error}`, 'error');
+                } else {
+                    showMessage('✅ Quotation generated successfully!', 'success');
+                    showQuotationModal(quotation);
+                    loadProcessedQuotations();
+                }
+            } catch (error) {
+                showMessage(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function showQuotationModal(quotation) {
+            currentQuotationId = quotation.inquiry_id;
+            document.getElementById('quotationPreview').textContent = quotation.formatted_quotation;
+            document.getElementById('recipientEmail').value = quotation.customer_info.email;
+            document.getElementById('quotationModal').style.display = 'block';
+        }
+
+        function closeQuotationModal() {
+            document.getElementById('quotationModal').style.display = 'none';
+            currentQuotationId = null;
+        }
+
+        async function sendQuotationEmail() {
+            if (!currentQuotationId) return;
+            
+            const recipientEmail = document.getElementById('recipientEmail').value;
+            if (!recipientEmail) {
+                showMessage('❌ Please enter recipient email', 'error');
+                return;
+            }
+            
+            const button = document.getElementById('sendQuotationText');
+            button.innerHTML = '<span class="loading">Sending...</span>';
+            
+            try {
+                const response = await fetch('/api/send-quotation-email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        inquiry_id: currentQuotationId,
+                        recipient_email: recipientEmail
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    showMessage(`❌ Error: ${data.error}`, 'error');
+                } else {
+                    showMessage(`✅ ${data.message}`, 'success');
+                    closeQuotationModal();
+                    loadProcessedQuotations();
+                }
+            } catch (error) {
+                showMessage(`❌ Error: ${error.message}`, 'error');
+            } finally {
+                button.textContent = '📤 Send Quotation';
+            }
+        }
+
+        async function loadProcessedQuotations() {
+            try {
+                const response = await fetch('/api/processed-quotations');
+                const data = await response.json();
+                
+                // Update quotations count in stats
+                document.getElementById('sentQuotations').textContent = 
+                    data.quotations.filter(q => q.status === 'sent').length;
+                
+                displayQuotations(data.quotations);
+                
+            } catch (error) {
+                console.error('Error loading quotations:', error);
+            }
+        }
+
+        function displayQuotations(quotations) {
+            const quotationsList = document.getElementById('quotationsList');
+            
+            if (quotations.length === 0) {
+                quotationsList.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #666;">
+                        📋 No quotations generated yet.
+                    </div>
+                `;
+                return;
+            }
+            
+            quotationsList.innerHTML = quotations.map(quotation => `
+                <div class="email-card">
+                    <div class="email-header">
+                        <div class="email-info">
+                            <h3>Quotation ID: ${quotation.inquiry_id}</h3>
+                            <div class="email-meta">
+                                Customer: ${quotation.customer_info.company_name}<br>
+                                Contact: ${quotation.customer_info.contact_person} (${quotation.customer_info.email})<br>
+                                Generated: ${new Date(quotation.timestamp).toLocaleString()}
+                                ${quotation.sent_timestamp ? `<br>Sent: ${new Date(quotation.sent_timestamp).toLocaleString()}` : ''}
+                            </div>
+                        </div>
+                        <div class="email-status ${quotation.status === 'sent' ? 'status-processed' : 'status-new'}">
+                            ${quotation.status === 'sent' ? 'Sent' : 'Ready'}
+                        </div>
+                    </div>
+                    
+                    <div style="margin: 1rem 0; padding: 1rem; background: #f7fafc; border-radius: 8px;">
+                        <strong>Product Type:</strong> ${quotation.requirements.product_type}<br>
+                        <strong>Industry:</strong> ${quotation.requirements.industry}<br>
+                        <strong>Timeline:</strong> ${quotation.requirements.timeline}
+                    </div>
+                    
+                    <div class="email-actions">
+                        <button class="btn btn-info btn-sm" onclick="viewQuotation('${quotation.inquiry_id}')">
+                            👁️ View Quotation
+                        </button>
+                        ${quotation.status !== 'sent' ? `
+                            <button class="btn btn-primary btn-sm" onclick="sendExistingQuotation('${quotation.inquiry_id}')">
+                                📤 Send Email
+                            </button>
+                        ` : `
+                            <span style="color: #48bb78; font-weight: 500;">✅ Sent to ${quotation.sent_to}</span>
+                        `}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function viewQuotation(quotationId) {
+            try {
+                const response = await fetch('/api/processed-quotations');
+                const data = await response.json();
+                
+                const quotation = data.quotations.find(q => q.inquiry_id === quotationId);
+                if (quotation) {
+                    showQuotationModal(quotation);
+                }
+            } catch (error) {
+                showMessage(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function sendExistingQuotation(quotationId) {
+            currentQuotationId = quotationId;
+            
+            try {
+                const response = await fetch('/api/processed-quotations');
+                const data = await response.json();
+                
+                const quotation = data.quotations.find(q => q.inquiry_id === quotationId);
+                if (quotation) {
+                    document.getElementById('quotationPreview').textContent = quotation.formatted_quotation;
+                    document.getElementById('recipientEmail').value = quotation.customer_info.email;
+                    document.getElementById('quotationModal').style.display = 'block';
+                }
+            } catch (error) {
+                showMessage(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function viewEmailDetails(emailId) {
+            // This function can be expanded to show full email details
+            showMessage('🔍 Email details view - Feature coming soon!', 'info');
+        }
+
+        function showMessage(message, type) {
+            // Remove existing messages
+            document.querySelectorAll('.success-message, .error-message, .info-message').forEach(msg => msg.remove());
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type === 'success' ? 'success-message' : 
+                                 type === 'error' ? 'error-message' : 
+                                 'info-message';
+            messageDiv.textContent = message;
+            
+            // Add info message styles if needed
+            if (type === 'info') {
+                messageDiv.style.background = '#bee3f8';
+                messageDiv.style.color = '#2c5282';
+                messageDiv.style.padding = '1rem';
+                messageDiv.style.borderRadius = '8px';
+                messageDiv.style.margin = '1rem 0';
+            }
+            
+            document.querySelector('.container').insertBefore(messageDiv, document.querySelector('.tabs'));
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => messageDiv.remove(), 5000);
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('quotationModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeQuotationModal();
+            }
+        });
+    </script>
+</body>
+</html>

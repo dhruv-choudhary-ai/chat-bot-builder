@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI LifeBOT Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #111111;
+            --bg-tertiary: #1a1a1a;
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --accent-primary: #ff6b35;
+            --accent-secondary: #ff8c42;
+            --accent-gradient: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+            --border-color: #27272a;
+            --card-bg: rgba(26, 26, 26, 0.8);
+            --backdrop-blur: backdrop-filter: blur(20px);
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            margin: 0;
+            display: flex;
+            min-height: 100vh;
+            overflow: hidden; /* Prevent scroll on main body */
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            padding-bottom: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .user-info {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .nav-menu {
+            flex-grow: 1;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 0.6rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: var(--accent-gradient);
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+        }
+
+        .nav-icon {
+            margin-right: 0.75rem;
+            font-size: 1.2rem;
+        }
+
+        .logout-button {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.6rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 1.5rem;
+        }
+
+        .logout-button:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border-color: #ef4444;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-primary);
+            height: 100%;
+        }
+
+        .content-header {
+            background: var(--bg-secondary);
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.3);
+            z-index: 50;
+        }
+
+        .content-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .content-body {
+            flex-grow: 1;
+            padding: 2rem;
+            overflow-y: auto; /* Enable scrolling for content */
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        /* Chat View */
+        .chat-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-secondary);
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+            height: 100%;
+        }
+
+        .messages-container {
+            flex-grow: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .message {
+            display: flex;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.assistant {
+            justify-content: flex-start;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 0.8rem 1.2rem;
+            border-radius: 1.2rem;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: var(--accent-primary);
+            color: white;
+            border-bottom-right-radius: 0.3rem;
+        }
+
+        .message.assistant .message-content {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border-bottom-left-radius: 0.3rem;
+        }
+
+        .chat-input-area {
+            display: flex;
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            gap: 0.75rem;
+        }
+
+        .message-input {
+            flex-grow: 1;
+            padding: 0.8rem 1.2rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.8rem;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 1rem;
+            resize: none;
+            min-height: 45px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .message-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.2);
+        }
+
+        .send-button {
+            background: var(--accent-gradient);
+            color: white;
+            border: none;
+            border-radius: 0.8rem;
+            padding: 0.8rem 1.2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .send-button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .start-new-chat-button {
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+            margin-top: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+
+        .start-new-chat-button:hover {
+            background: var(--accent-secondary);
+        }
+
+        /* Loading Indicator */
+        .loading-indicator {
+            display: flex;
+            align-items: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .loading-dots {
+            display: flex;
+            margin-left: 0.5rem;
+        }
+
+        .loading-dot {
+            width: 6px;
+            height: 6px;
+            background-color: var(--text-secondary);
+            border-radius: 50%;
+            margin: 0 2px;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .loading-dot:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dot:nth-child(2) { animation-delay: -0.16s; }
+        .loading-dot:nth-child(3) { animation-delay: 0s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* Conversations and Tickets Views */
+        .view {
+            display: none;
+            flex-direction: column;
+            flex-grow: 1;
+            background: var(--bg-secondary);
+            border-radius: 1rem;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .view.active {
+            display: flex;
+        }
+
+        .conversations-list, .tickets-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .conversation-item, .ticket-item {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.8rem;
+            padding: 1rem 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .conversation-item:hover, .ticket-item:hover {
+            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+        }
+
+        .conversation-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.4rem;
+        }
+
+        .conversation-preview, .ticket-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.4rem;
+        }
+
+        .conversation-date, .ticket-date {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-align: right;
+        }
+
+        .ticket-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.4rem;
+        }
+
+        .ticket-id {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .ticket-status {
+            font-size: 0.8rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+        }
+
+        .ticket-status.open {
+            background: rgba(255, 107, 53, 0.1);
+            color: var(--accent-primary);
+        }
+
+        .ticket-status.resolved {
+            background: rgba(34, 197, 94, 0.1);
+            color: #22c55e;
+        }
+
+        .mark-resolved-button {
+            background: #22c55e;
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+            margin-top: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+
+        .mark-resolved-button:hover {
+            background: #1a9f4e;
+        }
+
+        .resolved-label {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-top: 10px;
+            display: inline-block;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+                padding: 1rem;
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .sidebar-header {
+                border-bottom: none;
+                padding-bottom: 0;
+                margin-bottom: 0;
+                display: flex;
+                align-items: center;
+            }
+
+            .logo {
+                font-size: 1.5rem;
+                margin-bottom: 0;
+                margin-right: 1rem;
+            }
+
+            .user-info {
+                display: none; /* Hide user email on small screens */
+            }
+
+            .nav-menu {
+                display: none; /* Hide main nav on small screens, use a hamburger menu if needed */
+            }
+
+            .logout-button {
+                display: none; /* Hide logout on small screens, move to a user menu */
+            }
+
+            .main-content {
+                padding-top: 0;
+            }
+
+            .content-header {
+                padding: 1rem;
+            }
+
+            .content-title {
+                font-size: 1.5rem;
+            }
+
+            .content-body {
+                padding: 1rem;
+            }
+
+            .chat-input-area {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .send-button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">AI LifeBOT</div>
+            <div class="user-info">Welcome, <span id="userEmail"></span></div>
+        </div>
+        <ul class="nav-menu">
+            <li class="nav-item active" data-view="chat">
+                <span class="nav-icon">💬</span> Chat Assistant
+            </li>
+            <li class="nav-item" data-view="conversations">
+                <span class="nav-icon">📚</span> Conversations
+            </li>
+            <li class="nav-item" data-view="tickets">
+                <span class="nav-icon">🎫</span> Support Tickets
+            </li>
+        </ul>
+        <button class="logout-button" onclick="logout()">Logout</button>
+    </div>
+
+    <div class="main-content">
+        <div class="content-header">
+            <h1 class="content-title" id="contentTitle">AI Assistant</h1>
+            <select id="botSelect" style="padding: 8px; border-radius: 5px; background-color: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color);">
+                <option value="">Select a Bot</option>
+            </select>
+            <!-- Future: Add user settings or notifications here -->
+        </div>
+        <div class="content-body">
+            <!-- Chat View -->
+            <div id="chatView" class="view active">
+                <div class="chat-container">
+                    <div class="messages-container" id="messagesContainer">
+                        <!-- Messages will be loaded here -->
+                        <div class="message assistant">
+                            <div class="message-content">Hello! How can I assist you today?</div>
+                        </div>
+                    </div>
+                    <div class="chat-input-area">
+                        <textarea id="messageInput" class="message-input" placeholder="Type your message..." rows="1" onkeydown="handleKeyDown(event)"></textarea>
+                        <button id="sendButton" class="send-button" onclick="sendMessage()">Send</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conversations View -->
+            <div id="conversationsView" class="view">
+                <div class="conversations-list" id="conversationsList">
+                    <!-- Conversations will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Support Tickets View -->
+            <div id="ticketsView" class="view">
+                <div class="tickets-list" id="ticketsList">
+                    <!-- Tickets will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let conversations = [];
+        let tickets = [];
+        let currentView = 'chat';
+        let selectedBotId = null; // New variable to store selected bot ID
+
+        // Initialize the app
+        function initializeApp() {
+            console.log("Initializing app...");
+            setTimeout(() => {
+                const token = localStorage.getItem('authToken');
+                console.log("Token:", token);
+                if (!token) {
+                    window.location.href = '/';
+                    return; // Stop execution if no token
+                }
+                loadUserProfile(token);
+                setupNavigation();
+                setupTextareaAutoResize();
+                loadConversations();
+                loadTickets();
+                loadBotsForUser(token); // NEW: Load bots for the user
+            }, 100); // Add a small delay of 100ms
+        }
+
+        // Setup navigation
+        function setupNavigation() {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const view = item.dataset.view;
+                    switchView(view);
+                });
+            });
+        }
+
+        // Switch between views
+        function switchView(view) {
+            // Update nav items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelector(`[data-view="${view}"]`).classList.add('active');
+
+            // Update content
+            document.querySelectorAll('.view').forEach(v => {
+                v.classList.remove('active');
+            });
+            document.getElementById(`${view}View`).classList.add('active');
+
+            // Update title
+            const titles = {
+                chat: 'AI Assistant',
+                conversations: 'Conversations',
+                tickets: 'Support Tickets'
+            };
+            document.getElementById('contentTitle').textContent = titles[view];
+            
+            currentView = view;
+        }
+
+        // Setup textarea auto-resize
+        function setupTextareaAutoResize() {
+            const textarea = document.getElementById('messageInput');
+            if (textarea) {
+                textarea.addEventListener('input', function() {
+                    this.style.height = 'auto';
+                    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+                });
+            }
+        }
+
+        // Load user profile
+        async function loadUserProfile(token) {
+            try {
+                const response = await fetch('/users/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('userEmail').textContent = data.email;
+                } else {
+                    throw new Error('Failed to load profile');
+                }
+            } catch (error) {
+                console.error('Error loading profile:', error);
+                // Only redirect if there's an explicit authentication failure, not just any network error
+                if (error.message === 'Failed to load profile' || error.message === 'Invalid token') {
+                    localStorage.removeItem('authToken');
+                    window.location.href = '/';
+                }
+            }
+        }
+
+        // NEW FUNCTION: Load bots for the user
+        async function loadBotsForUser(token) {
+            try {
+                const response = await fetch('/users/me/bots', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const bots = await response.json();
+                    const botSelect = document.getElementById('botSelect');
+                    botSelect.innerHTML = '<option value="">Select a Bot</option>'; // Clear existing options
+
+                    if (bots.length === 0) {
+                        const option = document.createElement('option');
+                        option.value = "";
+                        option.textContent = "No bots available";
+                        botSelect.appendChild(option);
+                        botSelect.disabled = true;
+                        alert("No bots have been created yet. Please ask an admin to create one.");
+                        return;
+                    }
+
+                    bots.forEach(bot => {
+                        const option = document.createElement('option');
+                        option.value = bot.id;
+                        option.textContent = bot.name;
+                        botSelect.appendChild(option);
+                    });
+
+                    // Automatically select the first bot if available
+                    if (bots.length > 0) {
+                        botSelect.value = bots[0].id;
+                        selectedBotId = bots[0].id;
+                    }
+
+                    botSelect.addEventListener('change', (event) => {
+                        selectedBotId = event.target.value;
+                        console.log("Selected Bot ID:", selectedBotId);
+                    });
+
+                } else {
+                    throw new Error('Failed to load bots for user');
+                }
+            } catch (error) {
+                console.error('Error loading bots for user:', error);
+                alert("Error loading bots. Please try logging in again.");
+                // Optionally redirect to login if token is invalid
+                // localStorage.removeItem('authToken');
+                // window.location.href = '/';
+            }
+        }
+
+        // Send message to AI
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message to chat
+            addMessage(message, 'user');
+            input.value = '';
+            input.style.height = 'auto';
+            
+            // Show loading
+            const loadingElement = showLoading();
+            
+            // Disable send button
+            const sendBtn = document.getElementById('sendButton');
+            sendBtn.disabled = true;
+            
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = '/';
+                return;
+            }
+
+            if (!selectedBotId) {
+                alert("Please select a bot to chat with.");
+                sendBtn.disabled = false;
+                return;
+            }
+
+            try {
+                // Use the correct bot endpoint structure
+                let botEndpoint;
+                switch(selectedBotId) {
+                    case 5:  // Banking Bot (Bank Agent)
+                        botEndpoint = '/banking/ask';
+                        break;
+                    case 2:  // Career Bot (him)
+                        botEndpoint = '/career/ask';
+                        break;
+                    case 4:  // Retail Bot (Customer service bot)
+                        botEndpoint = '/retail/ask';
+                        break;
+                    case 3:  // Hotel Bot (HotelBot)
+                        botEndpoint = '/hotel/ask';
+                        break;
+                    case 1:  // Telecom Bot (my bot)
+                        botEndpoint = '/telecom/ask';
+                        break;
+                    default:
+                        botEndpoint = `/bots/${selectedBotId}/query`; // Fallback for other bots
+                }
+
+                const response = await fetch(botEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ question: message })
+                });
+                
+                const data = await response.json();
+                
+                // Debug logging to see what the bot returns
+                console.log('Bot response data:', data);
+                console.log('needs_human_assistance:', data.needs_human_assistance);
+                console.log('human_assistance_message:', data.human_assistance_message);
+                
+                // Remove loading
+                loadingElement.remove();
+                
+                if (response.ok) {
+                    // Check if human assistance is needed
+                    if (data.needs_human_assistance) {
+                        console.log('Human assistance detected - should show button');
+                        addMessage(data.answer, 'assistant', true, data.human_assistance_message);
+                    } else {
+                        console.log('No human assistance needed');
+                        addMessage(data.answer, 'assistant');
+                    }
+                    // Save conversation
+                    saveConversation(message, data.answer);
+                } else {
+                    addMessage('Sorry, I encountered an error. Please try again.', 'assistant');
+                }
+            } catch (error) {
+                loadingElement.remove();
+                console.error('Error sending message:', error);
+                addMessage('Network error. Please check your connection and try again.', 'assistant');
+            } finally {
+                sendBtn.disabled = false;
+            }
+        }
+
+        function addMessage(text, sender, needsHumanAssistance = false, humanAssistanceMessage = '') {
+            const messagesContainer = document.getElementById('messagesContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            const messageContentDiv = document.createElement('div');
+            messageContentDiv.className = 'message-content';
+            messageContentDiv.innerHTML = text;
+
+            messageDiv.appendChild(messageContentDiv);
+
+            // Add human assistance button if needed
+            console.log('addMessage - needsHumanAssistance:', needsHumanAssistance);
+            console.log('addMessage - text includes flag:', text.toLowerCase().includes('flag this for human assistance'));
+            console.log('addMessage - text:', text);
+            
+            if (needsHumanAssistance || text.toLowerCase().includes('flag this for human assistance')) {
+                console.log('Creating human assistance button');
+                const assistanceDiv = document.createElement('div');
+                assistanceDiv.className = 'human-assistance-section';
+                assistanceDiv.style.marginTop = '10px';
+                assistanceDiv.style.padding = '10px';
+                assistanceDiv.style.background = 'rgba(255, 107, 53, 0.1)';
+                assistanceDiv.style.borderRadius = '8px';
+                assistanceDiv.style.borderLeft = '3px solid var(--accent-primary)';
+                
+                const assistanceMessage = document.createElement('p');
+                assistanceMessage.textContent = humanAssistanceMessage || 'It seems like you might need additional help. Would you like to flag this query for human assistance?';
+                assistanceMessage.style.margin = '0 0 10px 0';
+                assistanceMessage.style.fontSize = '14px';
+                assistanceMessage.style.color = 'var(--text-secondary)';
+                
+                const button = document.createElement('button');
+                button.textContent = '🚩 Flag for Human Assistance';
+                button.className = 'human-assistance-button';
+                button.style.background = 'var(--accent-gradient)';
+                button.style.color = 'white';
+                button.style.border = 'none';
+                button.style.padding = '8px 16px';
+                button.style.borderRadius = '6px';
+                button.style.cursor = 'pointer';
+                button.style.fontSize = '14px';
+                button.style.fontWeight = '500';
+                button.onclick = () => flagForAssistance();
+                
+                assistanceDiv.appendChild(assistanceMessage);
+                assistanceDiv.appendChild(button);
+                messageDiv.appendChild(assistanceDiv);
+            }
+
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        async function flagForAssistance() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = '/';
+                return;
+            }
+            
+            const topic = prompt("Please briefly describe your query in one line:");
+            if (!topic || topic.trim() === '') {
+                return;
+            }
+            
+            try {
+                // Get the last user query for context
+                const chatMessages = document.querySelectorAll('.message.user .message-content');
+                const lastUserQuery = chatMessages.length > 0 ? chatMessages[chatMessages.length - 1].textContent : '';
+                
+                // Use the appropriate bot endpoint for human assistance
+                let assistanceEndpoint;
+                switch(selectedBotId) {
+                    case 5:  // Banking Bot (Bank Agent)
+                        assistanceEndpoint = '/banking/request-human-assistance';
+                        break;
+                    case 2:  // Career Bot (him)
+                        assistanceEndpoint = '/career/request-human-assistance';
+                        break;
+                    case 4:  // Retail Bot (Customer service bot)
+                        assistanceEndpoint = '/retail/request-human-assistance';
+                        break;
+                    case 3:  // Hotel Bot (HotelBot)
+                        assistanceEndpoint = '/hotel/request-human-assistance';
+                        break;
+                    case 1:  // Telecom Bot (my bot)
+                        assistanceEndpoint = '/telecom/request-human-assistance';
+                        break;
+                    default:
+                        // Fallback to the general tickets endpoint
+                        assistanceEndpoint = '/users/me/tickets';
+                }
+
+                // Create proper request body based on bot endpoint
+                const requestBody = [1, 2, 3, 4, 5].includes(selectedBotId) 
+                    ? { 
+                        user_id: 1, // This will be overridden by authentication
+                        query: lastUserQuery || topic.trim(),
+                        context: `User requested human assistance with topic: ${topic.trim()}`
+                      }
+                    : { topic: topic.trim() };
+
+                // Add bot_id to the URL for the fallback endpoint
+                const finalEndpoint = assistanceEndpoint === '/users/me/tickets' 
+                    ? `/users/me/tickets?bot_id=${selectedBotId}` 
+                    : assistanceEndpoint;
+
+                const response = await fetch(finalEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    const successMessage = `
+                        <div style="background: rgba(34, 197, 94, 0.1); border-left: 3px solid #22c55e; padding: 12px; border-radius: 6px; margin: 10px 0;">
+                            <p style="margin: 0; color: #22c55e; font-weight: 500;">✅ Query Flagged Successfully!</p>
+                            <p style="margin: 5px 0 0 0; font-size: 14px; color: var(--text-secondary);">
+                                Your query has been flagged for human assistance. Ticket ID: #${result.ticket_id || 'Generated'}
+                            </p>
+                            <p style="margin: 5px 0 0 0; font-size: 13px; color: var(--text-muted);">
+                                You can track the status in the Support Tickets section.
+                            </p>
+                        </div>
+                        <button onclick="startNewConversation()" class="start-new-chat-button" style="background: var(--accent-gradient); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px;">
+                            Start New Conversation
+                        </button>
+                    `;
+                    addMessage(successMessage, 'assistant');
+                    loadTickets(); // Refresh tickets list
+                } else {
+                    alert("Failed to flag your query. Please try again.");
+                    console.error('Error response:', result);
+                }
+            } catch (error) {
+                console.error('Error flagging query:', error);
+                alert("An error occurred while flagging your query. Please try again.");
+            }
+        }
+
+        function showLoading() {
+            const messagesContainer = document.getElementById('messagesContainer');
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'loading-indicator';
+            loadingDiv.innerHTML = `
+                Thinking
+                <div class="loading-dots">
+                    <div class="loading-dot"></div>
+                    <div class="loading-dot"></div>
+                    <div class="loading-dot"></div>
+                </div>
+            `;
+            messagesContainer.appendChild(loadingDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            return loadingDiv;
+        }
+
+        function handleKeyDown(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        // Save conversation locally
+        function saveConversation(question, answer) {
+            const conversation = {
+                id: Date.now(),
+                question,
+                answer,
+                timestamp: new Date().toISOString()
+            };
+            conversations.unshift(conversation);
+            
+            // Keep only last 50 conversations
+            if (conversations.length > 50) {
+                conversations = conversations.slice(0, 50);
+            }
+            
+            localStorage.setItem('conversations', JSON.stringify(conversations));
+            renderConversations();
+        }
+
+        // Load conversations
+        function loadConversations() {
+            const stored = localStorage.getItem('conversations');
+            if (stored) {
+                conversations = JSON.parse(stored);
+            }
+            renderConversations();
+        }
+
+        // Render conversations
+        function renderConversations() {
+            const container = document.getElementById('conversationsList');
+            
+            if (conversations.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                        <p>No conversations yet.</p>
+                        <p style="font-size: 0.875rem; margin-top: 0.5rem;">Start chatting with the AI assistant to see your conversations here.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = conversations.map(conv => `
+                <div class="conversation-item" onclick="viewConversation(${conv.id})">
+                    <div class="conversation-title">${conv.question.substring(0, 60)}${conv.question.length > 60 ? '...' : ''}</div>
+                    <div class="conversation-preview">${conv.answer.substring(0, 100)}${conv.answer.length > 100 ? '...' : ''}</div>
+                    <div class="conversation-date">${new Date(conv.timestamp).toLocaleDateString()}</div>
+                </div>
+            `).join('');
+        }
+
+        // View specific conversation
+        function viewConversation(id) {
+            const conversation = conversations.find(c => c.id === id);
+            if (conversation) {
+                // Switch to chat view and add the conversation
+                switchView('chat');
+                
+                // Clear current messages and add the selected conversation
+                const messagesContainer = document.getElementById('messagesContainer');
+                messagesContainer.innerHTML = `
+                    <div class="message user">
+                        <div class="message-content">${conversation.question}</div>
+                    </div>
+                    <div class="message assistant">
+                        <div class="message-content">${conversation.answer}</div>
+                    </div>
+                `;
+            }
+        }
+
+        // Load tickets
+        async function loadTickets() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = '/';
+                return;
+            }
+            try {
+                const response = await fetch('/users/me/tickets', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    tickets = await response.json();
+                    renderTickets();
+                } else {
+                    console.error('Failed to load tickets');
+                }
+            } catch (error) {
+                console.error('Error loading tickets:', error);
+            }
+        }
+
+        // Render tickets
+        function renderTickets() {
+            const container = document.getElementById('ticketsList');
+            
+            if (tickets.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                        <p>No support tickets.</p>
+                        <p style="font-size: 0.875rem; margin-top: 0.5rem;">If the AI assistant can't resolve your query, you will be given an option to create a ticket.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = tickets.map(ticket => `
+                <div class="ticket-item">
+                    <div class="ticket-header">
+                        <span class="ticket-id">TICKET-${String(ticket.id).padStart(3, '0')}</span>
+                        <span class="ticket-status ${ticket.status}">${ticket.status.toUpperCase()}</span>
+                    </div>
+                    <div class="ticket-description">${ticket.topic}</div>
+                    <div class="ticket-date">Created: ${new Date(ticket.created_at).toLocaleDateString()}</div>
+                    ${ticket.status === 'open' ? `<button class="mark-resolved-button" onclick="markTicketAsResolved(${ticket.id})">Mark as Resolved</button>` : `<span class="resolved-label">Resolved</span>`}
+                </div>
+            `).join('');
+        }
+
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('conversations');
+            window.location.href = '/';
+        }
+
+        async function markTicketAsResolved(ticketId) {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = '/';
+                return;
+            }
+
+            if (confirm("Are you sure you want to mark this ticket as resolved?")) {
+                try {
+                    const response = await fetch(`/users/me/tickets/${ticketId}/resolve`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        alert("Ticket marked as resolved!");
+                        loadTickets(); // Refresh the tickets list
+                    } else {
+                        const errorData = await response.json();
+                        alert(`Failed to mark ticket as resolved: ${errorData.detail || 'Unknown error'}`);
+                    }
+                } catch (error) {
+                    console.error('Error marking ticket as resolved:', error);
+                    alert("Network error. Please check your connection and try again.");
+                }
+            }
+        }
+
+        function startNewConversation() {
+            const messagesContainer = document.getElementById('messagesContainer');
+            messagesContainer.innerHTML = `
+                <div class="message assistant">
+                    <div class="message-content">Hello! How can I assist you today?</div>
+                </div>
+            `;
+            document.getElementById('messageInput').value = '';
+            document.getElementById('messageInput').style.height = 'auto';
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Initialize the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initializeApp);
+        
+        // Also initialize immediately if DOM is already loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            initializeApp();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lead Management Agent - Demo Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            padding: 20px;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .metric-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #4f46e5;
+        }
+        .processing-step {
+            background: #f0f9ff;
+            border-left: 3px solid #0ea5e9;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+        .alert-card {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+        }
+        .success-animation {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <!-- Header -->
+    <header class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center">
+                    <h1 class="text-2xl font-bold text-gray-900">🤖 Lead Management Agent</h1>
+                    <span class="ml-3 px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">
+                        DEMO
+                    </span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="refreshDashboard()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">
+                        🔄 Refresh
+                    </button>
+                    <button onclick="processSampleLeads()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg">
+                        📋 Process Samples
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Real-time Metrics -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="metric-card">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Total Leads</p>
+                        <p id="total-leads" class="text-2xl font-bold text-gray-900">0</p>
+                    </div>
+                    <div class="p-3 bg-blue-100 rounded-full">
+                        <span class="text-2xl">📊</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Follow-up Alerts</p>
+                        <p id="followup-alerts" class="text-2xl font-bold text-red-600">0</p>
+                    </div>
+                    <div class="p-3 bg-red-100 rounded-full">
+                        <span class="text-2xl">🔔</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">High Priority</p>
+                        <p id="high-priority" class="text-2xl font-bold text-orange-600">0</p>
+                    </div>
+                    <div class="p-3 bg-orange-100 rounded-full">
+                        <span class="text-2xl">⚡</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Processing Rate</p>
+                        <p id="processing-rate" class="text-2xl font-bold text-green-600">100%</p>
+                    </div>
+                    <div class="p-3 bg-green-100 rounded-full">
+                        <span class="text-2xl">✅</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Lead Processing Section -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">🚀 Process New Lead</h2>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Sample Leads:</label>
+                    <select id="sample-select" class="w-full p-2 border border-gray-300 rounded-lg">
+                        <option value="">Select a sample lead...</option>
+                    </select>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="lead-input" class="block text-sm font-medium text-gray-700 mb-2">
+                        Lead Data (Any Format):
+                    </label>
+                    <textarea 
+                        id="lead-input" 
+                        rows="8" 
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="Paste lead data here (email, WhatsApp message, form data, etc.)..."
+                    ></textarea>
+                </div>
+                
+                <button 
+                    onclick="processLead()" 
+                    class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg transition duration-200"
+                >
+                    🤖 Process with AI Agent
+                </button>
+                
+                <!-- Processing Results -->
+                <div id="processing-results" class="mt-6 hidden">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Processing Results:</h3>
+                    <div id="results-content"></div>
+                </div>
+            </div>
+
+            <!-- Dashboard Charts -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">📈 Analytics Dashboard</h2>
+                
+                <!-- Industry Distribution -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium text-gray-700 mb-3">Industry Distribution</h3>
+                    <canvas id="industry-chart" width="400" height="200"></canvas>
+                </div>
+                
+                <!-- Complexity Breakdown -->
+                <div>
+                    <h3 class="text-lg font-medium text-gray-700 mb-3">Complexity Breakdown</h3>
+                    <canvas id="complexity-chart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sales Team Workload -->
+        <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">👥 Sales Team Workload</h2>
+            <div id="sales-workload" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Will be populated dynamically -->
+            </div>
+        </div>
+
+        <!-- Follow-up Alerts -->
+        <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">🔔 Follow-up Alerts</h2>
+            <div id="followup-alerts-list">
+                <!-- Will be populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let industryChart, complexityChart;
+
+        // Initialize the dashboard
+        async function initDashboard() {
+            await loadSampleLeads();
+            await refreshDashboard();
+            initCharts();
+        }
+
+        // Load sample leads into dropdown
+        async function loadSampleLeads() {
+            try {
+                const response = await fetch('/api/sample-leads');
+                const samples = await response.json();
+                
+                const select = document.getElementById('sample-select');
+                samples.forEach(sample => {
+                    const option = document.createElement('option');
+                    option.value = sample.data;
+                    option.textContent = sample.title;
+                    select.appendChild(option);
+                });
+
+                // Handle selection
+                select.addEventListener('change', function() {
+                    if (this.value) {
+                        document.getElementById('lead-input').value = this.value;
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading samples:', error);
+            }
+        }
+
+        // Process a single lead
+        async function processLead() {
+            const leadData = document.getElementById('lead-input').value.trim();
+            if (!leadData) {
+                alert('Please enter lead data');
+                return;
+            }
+
+            const button = event.target;
+            button.disabled = true;
+            button.textContent = '🔄 Processing...';
+
+            try {
+                const response = await fetch('/api/process-lead', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        raw_data: leadData,
+                        source: 'demo'
+                    })
+                });
+
+                const result = await response.json();
+                displayProcessingResults(result);
+                
+                // Clear input and refresh dashboard
+                document.getElementById('lead-input').value = '';
+                document.getElementById('sample-select').value = '';
+                await refreshDashboard();
+
+            } catch (error) {
+                console.error('Error processing lead:', error);
+                alert('Error processing lead: ' + error.message);
+            } finally {
+                button.disabled = false;
+                button.textContent = '🤖 Process with AI Agent';
+            }
+        }
+
+        // Display processing results
+        function displayProcessingResults(result) {
+            const resultsDiv = document.getElementById('processing-results');
+            const contentDiv = document.getElementById('results-content');
+            
+            if (result.success) {
+                contentDiv.innerHTML = `
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4 success-animation">
+                        <div class="flex items-center mb-3">
+                            <span class="text-2xl mr-2">✅</span>
+                            <h4 class="text-lg font-semibold text-green-800">Lead Processed Successfully!</h4>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div><strong>Company:</strong> ${result.company}</div>
+                            <div><strong>Industry:</strong> ${result.industry}</div>
+                            <div><strong>Complexity:</strong> ${result.complexity}</div>
+                            <div><strong>Assigned to:</strong> ${result.assigned_to}</div>
+                        </div>
+                        <div class="mt-4">
+                            <h5 class="font-medium text-green-800 mb-2">Processing Steps:</h5>
+                            ${result.processing_steps.map(step => 
+                                `<div class="processing-step">${step}</div>`
+                            ).join('')}
+                        </div>
+                    </div>
+                `;
+            } else {
+                contentDiv.innerHTML = `
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div class="flex items-center mb-3">
+                            <span class="text-2xl mr-2">❌</span>
+                            <h4 class="text-lg font-semibold text-red-800">Processing Failed</h4>
+                        </div>
+                        <p class="text-red-700">${result.error}</p>
+                    </div>
+                `;
+            }
+            
+            resultsDiv.classList.remove('hidden');
+        }
+
+        // Process sample leads in bulk
+        async function processSampleLeads() {
+            const button = event.target;
+            button.disabled = true;
+            button.textContent = '🔄 Processing...';
+
+            try {
+                const response = await fetch('/api/bulk-process', {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`✅ Successfully processed ${result.processed_count} sample leads!`);
+                    await refreshDashboard();
+                } else {
+                    alert('❌ Error processing sample leads');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error processing sample leads: ' + error.message);
+            } finally {
+                button.disabled = false;
+                button.textContent = '📋 Process Samples';
+            }
+        }
+
+        // Refresh dashboard data
+        async function refreshDashboard() {
+            try {
+                const response = await fetch('/api/dashboard');
+                const data = await response.json();
+                
+                // Update metrics
+                document.getElementById('total-leads').textContent = data.total_leads;
+                document.getElementById('followup-alerts').textContent = data.low_followup_count;
+                document.getElementById('high-priority').textContent = 
+                    data.complexity_breakdown?.high || 0;
+                
+                // Update charts
+                updateCharts(data);
+                
+                // Update sales workload
+                updateSalesWorkload(data.sales_rep_workload);
+                
+                // Update follow-up alerts
+                updateFollowupAlerts(data.low_followup_leads);
+                
+            } catch (error) {
+                console.error('Error refreshing dashboard:', error);
+            }
+        }
+
+        // Initialize charts
+        function initCharts() {
+            // Industry Chart
+            const industryCtx = document.getElementById('industry-chart').getContext('2d');
+            industryChart = new Chart(industryCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: [
+                            '#4f46e5', '#06b6d4', '#10b981', '#f59e0b',
+                            '#ef4444', '#8b5cf6', '#f97316', '#84cc16'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            // Complexity Chart
+            const complexityCtx = document.getElementById('complexity-chart').getContext('2d');
+            complexityChart = new Chart(complexityCtx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Leads by Complexity',
+                        data: [],
+                        backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#dc2626']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update charts with new data
+        function updateCharts(data) {
+            // Update industry chart
+            if (data.industry_breakdown) {
+                industryChart.data.labels = Object.keys(data.industry_breakdown);
+                industryChart.data.datasets[0].data = Object.values(data.industry_breakdown);
+                industryChart.update();
+            }
+
+            // Update complexity chart
+            if (data.complexity_breakdown) {
+                complexityChart.data.labels = Object.keys(data.complexity_breakdown);
+                complexityChart.data.datasets[0].data = Object.values(data.complexity_breakdown);
+                complexityChart.update();
+            }
+        }
+
+        // Update sales workload display
+        function updateSalesWorkload(workloadData) {
+            const container = document.getElementById('sales-workload');
+            container.innerHTML = '';
+            
+            Object.entries(workloadData).forEach(([rep, workload]) => {
+                const [current, max] = workload.split('/').map(Number);
+                const percentage = (current / max) * 100;
+                const color = percentage > 80 ? 'red' : percentage > 60 ? 'yellow' : 'green';
+                
+                container.innerHTML += `
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h4 class="font-medium text-gray-900">${rep}</h4>
+                        <p class="text-sm text-gray-600">${workload} leads</p>
+                        <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                            <div class="bg-${color}-500 h-2 rounded-full" style="width: ${percentage}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Update follow-up alerts
+        function updateFollowupAlerts(alerts) {
+            const container = document.getElementById('followup-alerts-list');
+            
+            if (alerts.length === 0) {
+                container.innerHTML = '<p class="text-gray-600">No follow-up alerts at this time. Great job! 🎉</p>';
+            } else {
+                container.innerHTML = alerts.map(alert => `
+                    <div class="alert-card">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="font-medium text-red-800">${alert.company}</h4>
+                                <p class="text-sm text-red-600">Assigned to: ${alert.assigned_to || 'Unassigned'}</p>
+                            </div>
+                            <span class="text-red-500 text-xl">⚠️</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Auto-refresh dashboard every 30 seconds
+        setInterval(refreshDashboard, 30000);
+
+        // Initialize dashboard on page load
+        window.onload = initDashboard;
+    </script>
+</body>
+</html>

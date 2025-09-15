@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Industrial Solutions - Premium Engineering Products</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .hero-gradient {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #06b6d4 100%);
+        }
+        .product-card {
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .category-header {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-left: 5px solid #3b82f6;
+        }
+        .cta-button {
+            background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+        }
+        .cta-button:hover {
+            background: linear-gradient(135deg, #15803d 0%, #16a34a 100%);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-2xl font-bold text-blue-600">🏭 Industrial Solutions</h1>
+                    </div>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="/" class="text-blue-600 hover:text-blue-800 px-3 py-2 rounded-md text-sm font-medium">Home</a>
+                        <a href="/products" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Products</a>
+                        <a href="/inquiry" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium">Get Quote</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-gradient text-white py-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h1 class="text-4xl md:text-6xl font-bold mb-6">
+                    Premium Industrial Solutions
+                </h1>
+                <p class="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
+                    From precision components to complete manufacturing systems. 
+                    Serving automotive, chemical, pharmaceutical, and industrial sectors worldwide.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="/products" class="bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 rounded-lg font-semibold text-lg transition duration-200">
+                        🔍 Browse Products
+                    </a>
+                    <a href="/inquiry" class="cta-button text-white px-8 py-4 rounded-lg font-semibold text-lg transition duration-200">
+                        📋 Request Quote
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+                <div class="p-6">
+                    <div class="text-3xl font-bold text-blue-600">{{ total_products }}+</div>
+                    <div class="text-gray-600 mt-2">Product Categories</div>
+                </div>
+                <div class="p-6">
+                    <div class="text-3xl font-bold text-green-600">12+</div>
+                    <div class="text-gray-600 mt-2">Industries Served</div>
+                </div>
+                <div class="p-6">
+                    <div class="text-3xl font-bold text-purple-600">25+</div>
+                    <div class="text-gray-600 mt-2">Years Experience</div>
+                </div>
+                <div class="p-6">
+                    <div class="text-3xl font-bold text-orange-600">500+</div>
+                    <div class="text-gray-600 mt-2">Happy Clients</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Product Categories -->
+    <section class="py-16 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                    Our Product Categories
+                </h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    Comprehensive range of industrial equipment and solutions for diverse manufacturing needs
+                </p>
+            </div>
+
+            {% for category, products in products_by_category.items() %}
+            <div class="mb-12">
+                <div class="category-header p-4 rounded-lg mb-6">
+                    <h3 class="text-2xl font-bold text-gray-900">{{ category }}</h3>
+                    <p class="text-gray-600 mt-1">{{ products|length }} products available</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {% for product in products[:3] %}
+                    <div class="product-card bg-white rounded-lg shadow-md overflow-hidden">
+                        <div class="p-6">
+                            <div class="flex items-start justify-between mb-3">
+                                <h4 class="text-lg font-semibold text-gray-900">{{ product.name }}</h4>
+                                <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
+                                    {{ product.customization_level }}
+                                </span>
+                            </div>
+                            
+                            <p class="text-gray-600 text-sm mb-4">{{ product.description[:120] }}...</p>
+                            
+                            <div class="mb-4">
+                                <div class="text-sm text-gray-500 mb-2">Key Specifications:</div>
+                                {% for spec in product.specifications[:2] %}
+                                <div class="text-xs bg-gray-100 px-2 py-1 rounded mb-1">
+                                    <strong>{{ spec.parameter }}:</strong> {{ spec.value }} {{ spec.unit }}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="mb-4">
+                                <div class="text-sm text-gray-500 mb-2">Industries:</div>
+                                <div class="flex flex-wrap gap-1">
+                                    {% for domain in product.applicable_domains[:3] %}
+                                    <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
+                                        {{ domain.value.replace('_', ' ').title() }}
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-between items-center">
+                                <div class="text-lg font-semibold text-green-600">{{ product.base_price_range }}</div>
+                                <div class="text-sm text-gray-500">{{ product.lead_time_weeks }} weeks</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                {% if products|length > 3 %}
+                <div class="text-center mt-6">
+                    <a href="/products#{{ category.lower().replace(' ', '-') }}" 
+                       class="text-blue-600 hover:text-blue-800 font-medium">
+                        View all {{ products|length }} {{ category.lower() }} products →
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Industries We Serve -->
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                    Industries We Serve
+                </h2>
+                <p class="text-xl text-gray-600">
+                    Trusted partner across diverse industrial sectors
+                </p>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <div class="text-center p-6 bg-blue-50 rounded-lg hover:bg-blue-100 transition duration-200">
+                    <div class="text-4xl mb-3">🚗</div>
+                    <h4 class="font-semibold text-gray-900">Automotive</h4>
+                </div>
+                <div class="text-center p-6 bg-green-50 rounded-lg hover:bg-green-100 transition duration-200">
+                    <div class="text-4xl mb-3">🧪</div>
+                    <h4 class="font-semibold text-gray-900">Chemical</h4>
+                </div>
+                <div class="text-center p-6 bg-purple-50 rounded-lg hover:bg-purple-100 transition duration-200">
+                    <div class="text-4xl mb-3">💊</div>
+                    <h4 class="font-semibold text-gray-900">Pharmaceutical</h4>
+                </div>
+                <div class="text-center p-6 bg-orange-50 rounded-lg hover:bg-orange-100 transition duration-200">
+                    <div class="text-4xl mb-3">🍎</div>
+                    <h4 class="font-semibold text-gray-900">Food & Beverage</h4>
+                </div>
+                <div class="text-center p-6 bg-red-50 rounded-lg hover:bg-red-100 transition duration-200">
+                    <div class="text-4xl mb-3">🏗️</div>
+                    <h4 class="font-semibold text-gray-900">Construction</h4>
+                </div>
+                <div class="text-center p-6 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition duration-200">
+                    <div class="text-4xl mb-3">⚡</div>
+                    <h4 class="font-semibold text-gray-900">Power & Energy</h4>
+                </div>
+                <div class="text-center p-6 bg-teal-50 rounded-lg hover:bg-teal-100 transition duration-200">
+                    <div class="text-4xl mb-3">🛳️</div>
+                    <h4 class="font-semibold text-gray-900">Marine</h4>
+                </div>
+                <div class="text-center p-6 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition duration-200">
+                    <div class="text-4xl mb-3">🧵</div>
+                    <h4 class="font-semibold text-gray-900">Textile</h4>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-16 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-3xl md:text-4xl font-bold mb-6">
+                Ready to Transform Your Operations?
+            </h2>
+            <p class="text-xl mb-8 max-w-2xl mx-auto">
+                Get personalized quotes for your industrial equipment needs. Our experts will match 
+                the perfect solution for your requirements.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="/inquiry" class="bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 rounded-lg font-semibold text-lg transition duration-200">
+                    📋 Request Quote Now
+                </a>
+                <a href="/products" class="border-2 border-white text-white hover:bg-white hover:text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg transition duration-200">
+                    🔍 View All Products
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">🏭 Industrial Solutions</h3>
+                    <p class="text-gray-400">
+                        Your trusted partner for premium industrial equipment and engineering solutions.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Products</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="/products" class="hover:text-white">Steel Structures</a></li>
+                        <li><a href="/products" class="hover:text-white">Cooling Systems</a></li>
+                        <li><a href="/products" class="hover:text-white">Packaging Machinery</a></li>
+                        <li><a href="/products" class="hover:text-white">Control Systems</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Services</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white">Custom Engineering</a></li>
+                        <li><a href="#" class="hover:text-white">Installation</a></li>
+                        <li><a href="#" class="hover:text-white">Maintenance</a></li>
+                        <li><a href="#" class="hover:text-white">Technical Support</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Contact</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li>📧 sales@industrialsolutions.com</li>
+                        <li>📞 +91-9876543210</li>
+                        <li>🏢 Industrial Area, Mumbai</li>
+                        <li><a href="/inquiry" class="text-green-400 hover:text-white">Get Quote</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2025 Industrial Solutions. All rights reserved. | AI-Powered Product Matching</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

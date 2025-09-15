@@ -1,0 +1,44 @@
+# Web framework
+fastapi==0.116.1
+uvicorn[standard]==0.32.1
+
+# Authentication & Security
+python-jose[cryptography]==3.5.0
+python-multipart==0.0.20
+passlib[bcrypt]==1.7.4
+
+# Database
+SQLAlchemy==2.0.43
+alembic==1.14.0
+
+# AI & ML
+langchain==0.3.27
+langchain-core==0.3.74
+langchain-community==0.3.13
+langchain-chroma==0.2.5
+langchain-google-genai==2.1.9
+langchain-text-splitters==0.3.9
+langchain-huggingface==0.1.4
+
+# Vector Database & Embeddings
+chromadb==1.0.20
+
+# Caching
+redis==5.2.1
+
+# Environment & Configuration
+python-dotenv==1.0.1
+
+# Templates
+jinja2==3.1.5
+
+# HTTP Requests (for testing)
+requests==2.32.5
+
+# Utilities
+pydantic==2.10.4
+pydantic-settings==2.8.0
+hubspot-api-client==8.1.0
+
+# Communication
+twilio==9.4.0

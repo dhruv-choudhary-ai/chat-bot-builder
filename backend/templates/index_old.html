@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SecureAuth - Login & Registration</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="20" cy="20" r="1" fill="%23ffffff" opacity="0.05"/><circle cx="80" cy="40" r="1" fill="%23ffffff" opacity="0.05"/><circle cx="40" cy="80" r="1" fill="%23ffffff" opacity="0.05"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            pointer-events: none;
+        }
+
+        .auth-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 48px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow:
+                0 32px 64px rgba(0, 0, 0, 0.2),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+            position: relative;
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 16px;
+            margin: 0 auto 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+        }
+
+        .logo-icon::before {
+            content: '🔐';
+            font-size: 28px;
+            filter: grayscale(1) brightness(0) invert(1);
+        }
+
+        .brand-name {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a1d29;
+            letter-spacing: -0.5px;
+        }
+
+        .brand-subtitle {
+            font-size: 14px;
+            color: #64748b;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+
+        .auth-tabs {
+            display: flex;
+            background: #f1f5f9;
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 32px;
+            position: relative;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            background: transparent;
+            color: #64748b;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 2;
+        }
+
+        .tab-button.active {
+            color: #667eea;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .auth-section {
+            display: none;
+        }
+
+        .auth-section.active {
+            display: block;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 16px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: white;
+            outline: none;
+        }
+
+        .form-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: #9ca3af;
+        }
+
+        .submit-button {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .submit-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(102, 126, 234, 0.4);
+        }
+
+        .submit-button:active {
+            transform: translateY(0);
+        }
+
+        .submit-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.6s;
+        }
+
+        .submit-button:hover::before {
+            left: 100%;
+        }
+
+        .result-message {
+            margin-top: 16px;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            word-break: break-word;
+            display: none;
+            animation: slideIn 0.3s ease-out;
+            text-align: center;
+        }
+
+        .result-message.success {
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+            color: #065f46;
+            border: 2px solid #10b981;
+            display: block;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+        }
+
+        .result-message.error {
+            background: linear-gradient(135deg, #fee2e2, #fca5a5);
+            color: #991b1b;
+            border: 2px solid #ef4444;
+            display: block;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+        }
+
+        .result-message.info {
+            background: linear-gradient(135deg, #dbeafe, #93c5fd);
+            color: #1e40af;
+            border: 2px solid #3b82f6;
+            display: block;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .profile-section {
+            margin-top: 32px;
+            padding-top: 32px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .profile-button {
+            width: 100%;
+            padding: 16px;
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 16px;
+        }
+
+        .profile-button:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .profile-result {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #374151;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a1d29;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .loading .submit-button::after {
+            content: '';
+            width: 16px;
+            height: 16px;
+            border: 2px solid transparent;
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 480px) {
+            .auth-container {
+                padding: 32px 24px;
+                margin: 20px;
+            }
+
+            .brand-name {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="logo">
+            <div class="logo-icon"></div>
+            <h1 class="brand-name">SecureAuth</h1>
+            <p class="brand-subtitle">Secure Authentication Platform</p>
+        </div>
+
+        <div class="auth-tabs">
+            <button class="tab-button active" onclick="switchTab('register')">Register</button>
+            <button class="tab-button" onclick="switchTab('login')">Login</button>
+        </div>
+
+        <div id="registerSection" class="auth-section active">
+            <h2 class="section-title">Create Account</h2>
+            <form id="registerForm">
+                <div class="form-group">
+                    <label class="form-label" for="regEmail">Email Address</label>
+                    <input type="email" id="regEmail" class="form-input" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="regPassword">Password</label>
+                    <input type="password" id="regPassword" class="form-input" placeholder="Create a password" required>
+                </div>
+                <button type="submit" class="submit-button">Create Account</button>
+            </form>
+            <div id="regResult" class="result-message"></div>
+        </div>
+
+        <div id="loginSection" class="auth-section">
+            <h2 class="section-title">Welcome Back</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label class="form-label" for="loginEmail">Email Address</label>
+                    <input type="email" id="loginEmail" class="form-input" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" class="form-input" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="submit-button">Sign In</button>
+            </form>
+            <div id="loginResult" class="result-message"></div>
+        </div>
+
+        <div class="profile-section">
+            <h2 class="section-title">Profile Access</h2>
+            <button id="getProfile" class="profile-button">Get My Profile</button>
+            <div id="profileResult" class="profile-result"></div>
+        </div>
+    </div>
+
+    <script>
+        let token = "";
+
+        function switchTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update sections
+            document.querySelectorAll('.auth-section').forEach(section => section.classList.remove('active'));
+            document.getElementById(tab + 'Section').classList.add('active');
+
+            // Clear any existing messages
+            clearMessages();
+        }
+
+        function clearMessages() {
+            document.querySelectorAll('.result-message').forEach(msg => {
+                msg.style.display = 'none';
+                msg.className = 'result-message';
+            });
+        }
+
+        function showMessage(elementId, message, type = 'error') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `result-message ${type}`;
+            element.style.display = 'block';
+
+            // Auto-hide success messages after 5 seconds
+            if (type === 'success') {
+                setTimeout(() => {
+                    element.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        function setLoading(formId, isLoading) {
+            const form = document.getElementById(formId);
+            if (isLoading) {
+                form.classList.add('loading');
+            } else {
+                form.classList.remove('loading');
+            }
+        }
+
+        // Register
+        document.getElementById("registerForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            setLoading('registerForm', true);
+            clearMessages();
+
+            const email = document.getElementById("regEmail").value;
+            const password = document.getElementById("regPassword").value;
+
+            try {
+                const res = await fetch("/register", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+
+                if(res.ok){
+                    token = data.access_token;
+                    showMessage("regResult", "🎉 Account created successfully! You are now logged in.", 'success');
+                    // Clear the form
+                    document.getElementById("registerForm").reset();
+                } else {
+                    showMessage("regResult", data.detail || "Registration failed. Please try again.", 'error');
+                }
+            } catch (error) {
+                showMessage("regResult", "❌ Network error. Please check your connection.", 'error');
+            } finally {
+                setLoading('registerForm', false);
+            }
+        });
+
+        // Login
+        document.getElementById("loginForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            setLoading('loginForm', true);
+            clearMessages();
+
+            const email = document.getElementById("loginEmail").value;
+            const password = document.getElementById("loginPassword").value;
+
+            const form = new URLSearchParams();
+            form.append("username", email);
+            form.append("password", password);
+
+            try {
+                const res = await fetch("/token", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: form
+                });
+                const data = await res.json();
+
+                if(res.ok){
+                    localStorage.setItem('authToken', data.access_token);
+                    showMessage("loginResult", "✅ Successfully logged in! Redirecting...", 'success');
+                    window.location.href = "/dashboard";
+                } else {
+                    showMessage("loginResult", data.detail || "Login failed. Please check your credentials.", 'error');
+                }
+            } catch (error) {
+                showMessage("loginResult", "❌ Network error. Please check your connection.", 'error');
+            } finally {
+                setLoading('loginForm', false);
+            }
+        });
+
+        // Get Profile
+        document.getElementById("getProfile").addEventListener("click", async () => {
+            const profileResult = document.getElementById("profileResult");
+
+            if(!token){
+                showMessage("regResult", "⚠️ Please login or register first to access your profile.", 'info');
+                return;
+            }
+
+            const button = document.getElementById("getProfile");
+            const originalText = button.textContent;
+            button.textContent = "Loading Profile...";
+            button.disabled = true;
+            profileResult.style.display = 'none';
+
+            try {
+                const res = await fetch("/users/me", {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    profileResult.textContent = JSON.stringify(data, null, 2);
+                    profileResult.style.display = 'block';
+                } else {
+                    showMessage("regResult", "❌ Failed to load profile. Please try logging in again.", 'error');
+                    token = ""; // Clear invalid token
+                }
+            } catch (error) {
+                showMessage("regResult", "❌ Error loading profile: " + error.message, 'error');
+            } finally {
+                button.textContent = originalText;
+                button.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

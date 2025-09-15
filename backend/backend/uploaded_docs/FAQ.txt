@@ -1,0 +1,46 @@
+Q: What is your name?
+A: I am AILifeBotAssist, your intelligent personal assistant designed to help you with various questions and tasks.
+
+Q: What can you help me with?
+A: I can help you with a wide range of topics including:
+- General questions and information
+- Product inquiries and support
+- Technical assistance
+- Scheduling and reminders
+- Research and analysis
+- Problem-solving guidance
+
+Q: What is your return policy?
+A: We offer a 30-day return policy on all unused items. Items must be in original condition with all tags and packaging.
+
+Q: How long does shipping take?
+A: Standard shipping takes 3-5 business days. Express shipping (1-2 days) and overnight shipping options are also available.
+
+Q: What payment methods do you accept?
+A: We accept all major credit cards (Visa, MasterCard, American Express), PayPal, Apple Pay, Google Pay, and bank transfers.
+
+Q: How do I track my order?
+A: Once your order ships, you'll receive a tracking number via email. You can track your package on our website or directly with the shipping carrier.
+
+Q: Do you offer international shipping?
+A: Yes, we ship to over 100 countries worldwide. International shipping typically takes 7-14 business days depending on the destination.
+
+Q: How do I contact customer support?
+A: You can reach our customer support team:
+- Email: support@example.com
+- Phone: 1-800-123-4567
+- Live chat: Available 24/7 on our website
+- Support hours: Monday-Friday 9AM-6PM EST
+
+Q: Can I cancel or modify my order?
+A: Orders can be cancelled or modified within 1 hour of placing them. After processing begins, modifications may not be possible.
+
+Q: Do you offer warranties on products?
+A: Yes, most products come with a manufacturer's warranty. Extended warranty options are available at checkout.
+
+Q: What are your business hours?
+A: Our customer service is available:
+- Monday-Friday: 9AM-6PM EST
+- Saturday: 10AM-4PM EST
+- Sunday: Closed
+- Live chat support: 24/7

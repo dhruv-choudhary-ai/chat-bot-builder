@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create a Bot</title>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #f0f0f0;
+            font-family: sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .create-bot-container {
+            background-color: #2c2c2c;
+            padding: 40px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #444;
+            background-color: #1a1a1a;
+            color: #f0f0f0;
+        }
+        .create-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin-top: 20px;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="create-bot-container">
+        <h2>Create a New Bot</h2>
+        <div class="form-group">
+            <label for="bot-name">Bot Name</label>
+            <input type="text" id="bot-name" placeholder="Enter a name for your bot">
+        </div>
+        <div class="form-group">
+            <label for="bot-type">Bot Type</label>
+            <select id="bot-type">
+                <!-- Options will be dynamically loaded here -->
+            </select>
+        </div>
+        <button class="create-btn" id="create-btn">Create Bot</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const botTypeSelect = document.getElementById('bot-type');
+            const createBtn = document.getElementById('create-btn');
+            const botNameInput = document.getElementById('bot-name');
+
+            // Load available bot types
+            fetch('/public/bots/available')
+                .then(response => response.json())
+                .then(availableBots => {
+                    console.log("Available Bots fetched:", availableBots); // ADDED LOG
+                    availableBots.forEach(botType => {
+                        const option = document.createElement('option');
+                        option.value = botType;
+                        option.textContent = botType;
+                        botTypeSelect.appendChild(option);
+                    });
+                })
+                .catch(error => { // ADDED CATCH FOR FETCH ERROR
+                    console.error("Error fetching available bots:", error);
+                });
+
+            createBtn.addEventListener('click', () => {
+                console.log("Create button clicked!"); // ADDED LOG
+                const botName = botNameInput.value;
+                const botType = botTypeSelect.value;
+
+                if (!botName) {
+                    alert("Please enter a name for your bot.");
+                    return;
+                }
+
+                const token = localStorage.getItem('adminAuthToken');
+                console.log("Admin Auth Token:", token); // ADDED LOG
+                fetch('/admin/bots', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ name: botName, bot_type: botType })
+                })
+                .then(response => {
+                    console.log("Response from /admin/bots:", response); // ADDED LOG
+                    if (!response.ok) { // Check for HTTP errors
+                        return response.json().then(err => { throw err; });
+                    }
+                    return response.json();
+                })
+                .then(newBot => {
+                    console.log("New Bot created:", newBot); // ADDED LOG
+                    window.location.href = `/bot/${newBot.id}/dashboard`;
+                })
+                .catch(error => { // ADDED CATCH FOR POST ERROR
+                    console.error("Error creating bot:", error);
+                    alert("Error creating bot: " + (error.detail || error.message || JSON.stringify(error)));
+                });
+            });
+        });
+    </script>
+</body>
+</html>

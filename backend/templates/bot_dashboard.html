@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot Dashboard</title>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #f0f0f0;
+            font-family: sans-serif;
+            margin: 0;
+            display: flex;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #2c2c2c;
+            height: 100vh;
+            padding: 20px;
+        }
+        .sidebar h2 {
+            color: #f0f0f0;
+            text-align: center;
+        }
+        .sidebar ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .sidebar ul li {
+            padding: 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #444;
+        }
+        .sidebar ul li:hover {
+            background-color: #444;
+        }
+        .main-content {
+            flex-grow: 1;
+            padding: 20px;
+            display: none;
+        }
+        .main-content.active {
+            display: flex;
+        }
+        .left-column {
+            width: 30%;
+            background-color: #2c2c2c;
+            padding: 20px;
+            border-radius: 8px;
+            margin-right: 20px;
+            height: calc(100vh - 60px);
+            overflow-y: auto;
+        }
+        .right-column {
+            width: 70%;
+            background-color: #2c2c2c;
+            padding: 20px;
+            border-radius: 8px;
+            height: calc(100vh - 60px);
+            overflow-y: auto;
+        }
+        .ticket-list-item {
+            background-color: #3c3c3c;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 1px solid #555;
+        }
+        .ticket-list-item:hover {
+            background-color: #4c4c4c;
+        }
+        .ticket-list-item h4 {
+            margin: 0 0 5px 0;
+            color: #4ade80;
+        }
+        .ticket-list-item p {
+            margin: 0;
+            color: #d1d5db;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <h2 id="bot-name">Bot Dashboard</h2>
+        <ul>
+            <li id="inbox-btn">Inbox</li>
+            <li id="channels-btn">Channels</li>
+            <li id="knowledge-base-btn">Knowledge Base</li>
+            <li id="query-tickets-btn">Query Tickets</li>
+        </ul>
+        <a href="/admin" class="back-btn">Back to Dashboard</a>
+    </div>
+    <div class="main-content active" id="inbox-view">
+        <div class="left-column">
+            <h3>Inbox</h3>
+            <div id="date-list"></div>
+        </div>
+        <div class="right-column">
+            <h3>Conversation</h3>
+            <div id="conversation"></div>
+        </div>
+    </div>
+    <div class="main-content" id="channels-view">
+        <div class="left-column">
+            <h3>Channels</h3>
+            <div id="channel-list"></div>
+        </div>
+        <div class="right-column">
+            <h3>Conversation</h3>
+            <div id="channel-conversation"></div>
+        </div>
+    </div>
+    <div class="main-content" id="knowledge-base-view">
+        <div class="right-column" style="width: 100%">
+            <h3>Knowledge Base</h3>
+            <div id="document-list"></div>
+            <div class="upload-container">
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <div class="upload-btn" id="upload-btn">+</div>
+                    <span style="color: #f0f0f0; margin-top: 10px;">Add Knowledge Base</span>
+                </div>
+                <input type="file" id="file-input" style="display: none;" accept=".pdf,.txt">
+            </div>
+        </div>
+    </div>
+    <div class="main-content" id="query-tickets-view">
+        <div class="left-column">
+            <h3>Query Tickets</h3>
+            <div id="ticket-list"></div>
+        </div>
+        <div class="right-column">
+            <h3>Ticket Details</h3>
+            <div id="ticket-details"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const botId = window.location.pathname.split('/')[2];
+            const botName = document.getElementById('bot-name');
+
+            const token = localStorage.getItem('adminAuthToken');
+            if (!token) {
+                window.location.href = '/admin';
+                return;
+            }
+
+            const inboxView = document.getElementById('inbox-view');
+            const channelsView = document.getElementById('channels-view');
+            const knowledgeBaseView = document.getElementById('knowledge-base-view');
+            const queryTicketsView = document.getElementById('query-tickets-view');
+
+            const inboxBtn = document.getElementById('inbox-btn');
+            const channelsBtn = document.getElementById('channels-btn');
+            const knowledgeBaseBtn = document.getElementById('knowledge-base-btn');
+            const queryTicketsBtn = document.getElementById('query-tickets-btn');
+
+            const views = [inboxView, channelsView, knowledgeBaseView, queryTicketsView];
+
+            function switchView(viewToShow) {
+                views.forEach(view => {
+                    view.style.display = 'none';
+                });
+                viewToShow.style.display = 'flex';
+            }
+
+            inboxBtn.addEventListener('click', () => switchView(inboxView));
+            channelsBtn.addEventListener('click', () => switchView(channelsView));
+            knowledgeBaseBtn.addEventListener('click', () => switchView(knowledgeBaseView));
+            // queryTicketsBtn event listener is defined later with loadTickets() call
+
+            function loadInbox() {
+                const dateList = document.getElementById('date-list');
+                const conversationDiv = document.getElementById('conversation');
+
+                fetch(`/admin/bots/${botId}/inbox/dates`, { headers: { 'Authorization': `Bearer ${token}` } })
+                    .then(response => response.json())
+                    .then(dates => {
+                        dateList.innerHTML = '';
+                        dates.forEach(date => {
+                            const dateDiv = document.createElement('div');
+                            dateDiv.classList.add('date-list-item');
+                            dateDiv.innerHTML = `<h4>${date}</h4>`;
+                            const userList = document.createElement('ul');
+                            dateDiv.appendChild(userList);
+                            dateList.appendChild(dateDiv);
+
+                            dateDiv.addEventListener('click', () => {
+                                fetch(`/admin/bots/${botId}/inbox/users?date=${date}`, { headers: { 'Authorization': `Bearer ${token}` } })
+                                    .then(response => response.json())
+                                    .then(users => {
+                                        userList.innerHTML = '';
+                                        users.forEach(user => {
+                                            const userLi = document.createElement('li');
+                                            userLi.classList.add('user-list-item');
+                                            userLi.textContent = user.email;
+                                            userLi.addEventListener('click', (event) => {
+                                                event.stopPropagation();
+                                                fetch(`/admin/bots/${botId}/inbox/conversations?user_id=${user.id}&date=${date}`, { headers: { 'Authorization': `Bearer ${token}` } })
+                                                    .then(response => response.json())
+                                                    .then(conversations => renderConversation('conversation', conversations));
+                                            });
+                                            userList.appendChild(userLi);
+                                        });
+                                    });
+                            });
+                        });
+                    });
+            }
+
+            function renderConversation(containerId, conversations) {
+                const conversationDiv = document.getElementById(containerId);
+                conversationDiv.innerHTML = '';
+                if (!conversations || conversations.length === 0) {
+                    conversationDiv.textContent = 'No conversation found.';
+                    return;
+                }
+                conversations.forEach(conv => {
+                    const msgDiv = document.createElement('div');
+                    const source = conv.interaction?.source || 'unknown';
+                    const content = conv.interaction?.content || '(no content)';
+                    msgDiv.classList.add('message', source === 'user' ? 'user-message' : 'bot-message');
+                    msgDiv.textContent = `${source.charAt(0).toUpperCase() + source.slice(1)}: ${content}`;
+                    conversationDiv.appendChild(msgDiv);
+                });
+            }
+
+            inboxBtn.addEventListener('click', () => {
+                switchView(inboxView);
+                loadInbox();
+            });
+
+            channelsBtn.addEventListener('click', () => {
+                switchView(channelsView);
+                loadChannels();
+            });
+
+            function loadChannels() {
+                const channelList = document.getElementById('channel-list');
+                const channelConversationDiv = document.getElementById('channel-conversation');
+
+                fetch(`/admin/bots/${botId}/channels`, { headers: { 'Authorization': `Bearer ${token}` } })
+                    .then(response => response.json())
+                    .then(channels => {
+                        channelList.innerHTML = '';
+                        channels.forEach(channel => {
+                            const channelDiv = document.createElement('div');
+                            channelDiv.classList.add('date-list-item');
+                            channelDiv.innerHTML = `<h4>${channel}</h4>`;
+                            const userList = document.createElement('ul');
+                            channelDiv.appendChild(userList);
+                            channelList.appendChild(channelDiv);
+
+                            channelDiv.addEventListener('click', () => {
+                                fetch(`/admin/bots/${botId}/channels/${channel}/users`, { headers: { 'Authorization': `Bearer ${token}` } })
+                                    .then(response => response.json())
+                                    .then(users => {
+                                        userList.innerHTML = '';
+                                        users.forEach(user => {
+                                            const userLi = document.createElement('li');
+                                            userLi.classList.add('user-list-item');
+                                            userLi.textContent = user.email;
+                                            userLi.addEventListener('click', (event) => {
+                                                event.stopPropagation();
+                                                fetch(`/admin/bots/${botId}/channels/${channel}/users/${user.id}/conversations`, { headers: { 'Authorization': `Bearer ${token}` } })
+                                                    .then(response => response.json())
+                                                    .then(conversations => renderConversation('channel-conversation', conversations));
+                                            });
+                                            userList.appendChild(userLi);
+                                        });
+                                    });
+                            });
+                        });
+                    });
+            }
+
+            const uploadBtn = document.getElementById('upload-btn');
+            const fileInput = document.getElementById('file-input');
+            const documentList = document.getElementById('document-list');
+
+            uploadBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', () => {
+                const file = fileInput.files[0];
+                if (file) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    fetch(`/admin/bots/${botId}/knowledge-base`, { method: 'POST', body: formData, headers: { 'Authorization': `Bearer ${token}` } })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) loadKnowledgeBase();
+                            else alert('File upload failed');
+                        });
+                }
+            });
+
+            function loadKnowledgeBase() {
+                fetch(`/admin/bots/${botId}/knowledge-base`, { headers: { 'Authorization': `Bearer ${token}` } })
+                    .then(response => response.json())
+                    .then(documents => {
+                        documentList.innerHTML = '';
+                        documents.forEach(doc => {
+                            const docElement = document.createElement('div');
+                            docElement.classList.add('document-item');
+                            docElement.textContent = doc;
+                            documentList.appendChild(docElement);
+                        });
+                    });
+            }
+
+            function loadTickets() {
+                console.log('DEBUG: loadTickets() called');
+                const ticketList = document.getElementById('ticket-list');
+                const ticketDetails = document.getElementById('ticket-details');
+
+                fetch(`/admin/bots/${botId}/tickets`, { headers: { 'Authorization': `Bearer ${token}` } })
+                    .then(response => response.json())
+                    .then(tickets => {
+                        console.log('DEBUG: Received tickets:', tickets.length, tickets);
+                        console.log('DEBUG: Clearing ticket list, current children:', ticketList.children.length);
+                        ticketList.innerHTML = '';
+                        console.log('DEBUG: After clearing, children:', ticketList.children.length);
+                        
+                        tickets.forEach((ticket, index) => {
+                            console.log(`DEBUG: Adding ticket ${index + 1}/${tickets.length} to list:`, ticket.id, ticket.topic);
+                            const ticketDiv = document.createElement('div');
+                            ticketDiv.classList.add('ticket-list-item');
+                            ticketDiv.id = `ticket-${ticket.id}`; // Add unique ID
+                            ticketDiv.innerHTML = `<h4>TICKET-${String(ticket.id).padStart(3, '0')}</h4><p>${ticket.topic}</p>`;
+                            ticketDiv.addEventListener('click', () => loadTicketDetails(ticket.id));
+                            
+                            // Check if this ticket already exists
+                            const existing = document.getElementById(`ticket-${ticket.id}`);
+                            if (existing) {
+                                console.log(`WARNING: Ticket ${ticket.id} already exists in DOM!`);
+                                existing.remove();
+                            }
+                            
+                            ticketList.appendChild(ticketDiv);
+                            console.log('DEBUG: After adding, total children:', ticketList.children.length);
+                        });
+                        
+                        console.log('DEBUG: Final ticket list children count:', ticketList.children.length);
+                    });
+            }
+
+            function loadTicketDetails(ticketId) {
+                const ticketDetails = document.getElementById('ticket-details');
+                fetch(`/admin/bots/${botId}/tickets/${ticketId}`, { headers: { 'Authorization': `Bearer ${token}` } })
+                    .then(response => response.json())
+                    .then(data => {
+                        const user = data.user;
+                        const ticket = data.ticket;
+                        ticketDetails.innerHTML = `
+                            <h4>TICKET-${String(ticket.id).padStart(3, '0')}</h4>
+                            <p><strong>User:</strong> ${user.email}</p>
+                            <p><strong>Phone:</strong> ${user.phone_number || 'N/A'}</p>
+                            <p><strong>Topic:</strong> ${ticket.topic}</p>
+                            <p><strong>Query:</strong> ${ticket.description || 'N/A'}</p>
+                            <p><strong>Status:</strong> ${ticket.status}</p>
+                            <p><strong>Created:</strong> ${new Date(ticket.created_at).toLocaleString()}</p>
+                        `;
+                    });
+            }
+
+            knowledgeBaseBtn.addEventListener('click', () => {
+                switchView(knowledgeBaseView);
+                loadKnowledgeBase();
+            });
+
+            queryTicketsBtn.addEventListener('click', () => {
+                switchView(queryTicketsView);
+                loadTickets();
+            });
+
+            // Initial Load
+            loadInbox();
+
+            // Fetch bot details to display the name
+            fetch(`/admin/bots/${botId}`, { headers: { 'Authorization': `Bearer ${token}` } })
+                .then(response => response.json())
+                .then(bot => {
+                    botName.textContent = bot.name;
+                });
+        });
+    </script>
+</body>
+</html>

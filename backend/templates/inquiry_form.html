@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Inquiry - Industrial Solutions</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .form-gradient {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        }
+        .input-focus {
+            transition: all 0.3s;
+        }
+        .input-focus:focus {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.15);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="/" class="text-2xl font-bold text-blue-600">🏭 Industrial Solutions</a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/" class="text-gray-700 hover:text-blue-600 font-medium">Home</a>
+                    <a href="/products" class="text-gray-700 hover:text-blue-600 font-medium">Products</a>
+                    <span class="text-blue-600 font-medium">Get Quote</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="min-h-screen py-12">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Header -->
+            <div class="text-center mb-12">
+                <h1 class="text-4xl font-bold text-gray-900 mb-4">
+                    🤖 AI-Powered Product Inquiry
+                </h1>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    Tell us your requirements and our AI system will match you with the perfect industrial solution from our comprehensive ERP catalog.
+                </p>
+                <div class="mt-6 flex justify-center">
+                    <div class="flex items-center bg-green-100 text-green-800 px-4 py-2 rounded-full">
+                        <span class="text-sm font-medium">✨ Intelligent Product Matching • 📋 Instant Quotations • 🎯 ERP Integration</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inquiry Form -->
+            <div class="form-gradient rounded-2xl shadow-xl p-8">
+                <form action="/api/submit-inquiry" method="POST" class="space-y-8">
+                    <!-- Company Information -->
+                    <div class="bg-white rounded-lg p-6 shadow-sm">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                            🏢 Company Information
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="customer_name" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Contact Person *
+                                </label>
+                                <input type="text" id="customer_name" name="customer_name" required
+                                       class="input-focus w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="Your full name">
+                            </div>
+                            <div>
+                                <label for="company" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Company Name *
+                                </label>
+                                <input type="text" id="company" name="company" required
+                                       class="input-focus w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="Your company name">
+                            </div>
+                            <div>
+                                <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Email Address *
+                                </label>
+                                <input type="email" id="email" name="email" required
+                                       class="input-focus w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="your.email@company.com">
+                            </div>
+                            <div>
+                                <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Phone Number *
+                                </label>
+                                <input type="tel" id="phone" name="phone" required
+                                       class="input-focus w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="+91-9876543210">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Industry & Requirements -->
+                    <div class="bg-white rounded-lg p-6 shadow-sm">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                            🏭 Industry & Requirements
+                        </h3>
+                        <div class="space-y-6">
+                            <div>
+                                <label for="industry" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Industry Type *
+                                </label>
+                                <select id="industry" name="industry" required
+                                        class="input-focus w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="">Select your industry</option>
+                                    <option value="automotive">🚗 Automotive</option>
+                                    <option value="chemical">🧪 Chemical Processing</option>
+                                    <option value="pharmaceutical">💊 Pharmaceutical</option>
+                                    <option value="food_beverage">🍎 Food & Beverage</option>
+                                    <option value="textile">🧵 Textile</option>
+                                    <option value="steel_metal">🔩 Steel & Metal</option>
+                                    <option value="power_energy">⚡ Power & Energy</option>
+                                    <option value="oil_gas">🛢️ Oil & Gas</option>
+                                    <option value="construction">🏗️ Construction</option>
+                                    <option value="marine">🛳️ Marine</option>
+                                    <option value="mining">⛏️ Mining</option>
+                                    <option value="aerospace">✈️ Aerospace</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label for="product_requirement" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Product Requirement *
+                                </label>
+                                <textarea id="product_requirement" name="product_requirement" required rows="4"
+                                          class="input-focus w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                          placeholder="Describe what you need... e.g., 'Industrial chiller for pharmaceutical manufacturing', 'Steel structures for automotive assembly line', 'Packaging machinery for food processing'"></textarea>
+                                <p class="mt-2 text-sm text-gray-500">
+                                    💡 <strong>AI Tip:</strong> Be descriptive! Our AI will match similar products even if you don't know the exact product names.
+                                </p>
+                            </div>
+
+                            <div>
+                                <label for="technical_specifications" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Technical Specifications
+                                </label>
+                                <textarea id="technical_specifications" name="technical_specifications" rows="3"
+                                          class="input-focus w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                          placeholder="Capacity, dimensions, materials, certifications needed... e.g., '500 TR capacity, SS316 material, FDA compliance required'"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Project Details -->
+                    <div class="bg-white rounded-lg p-6 shadow-sm">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                            📊 Project Details
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="budget_range" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Budget Range
+                                </label>
+                                <select id="budget_range" name="budget_range"
+                                        class="input-focus w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="">Select budget range</option>
+                                    <option value="under_10L">Under ₹10 Lakhs</option>
+                                    <option value="10L_50L">₹10L - ₹50L</option>
+                                    <option value="50L_1Cr">₹50L - ₹1 Crore</option>
+                                    <option value="1Cr_5Cr">₹1 Cr - ₹5 Cr</option>
+                                    <option value="5Cr_25Cr">₹5 Cr - ₹25 Cr</option>
+                                    <option value="above_25Cr">Above ₹25 Crores</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="timeline" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Required Timeline
+                                </label>
+                                <select id="timeline" name="timeline"
+                                        class="input-focus w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="">Select timeline</option>
+                                    <option value="urgent">🚨 Urgent (Within 1 month)</option>
+                                    <option value="3_months">⏰ 2-3 months</option>
+                                    <option value="6_months">📅 3-6 months</option>
+                                    <option value="1_year">📆 6-12 months</option>
+                                    <option value="flexible">🔄 Flexible timing</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Information -->
+                    <div class="bg-white rounded-lg p-6 shadow-sm">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                            📝 Additional Information
+                        </h3>
+                        <div>
+                            <label for="additional_notes" class="block text-sm font-medium text-gray-700 mb-2">
+                                Special Requirements or Notes
+                            </label>
+                            <textarea id="additional_notes" name="additional_notes" rows="3"
+                                      class="input-focus w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                      placeholder="Installation requirements, maintenance needs, compliance standards, integration with existing systems..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- AI Processing Info -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                        <h4 class="text-lg font-semibold text-blue-900 mb-3 flex items-center">
+                            🤖 How Our AI System Works
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-blue-800">
+                            <div class="flex items-start">
+                                <span class="text-2xl mr-3">1️⃣</span>
+                                <div>
+                                    <strong>Intelligent Analysis</strong><br>
+                                    AI analyzes your requirements and matches them with our ERP catalog
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="text-2xl mr-3">2️⃣</span>
+                                <div>
+                                    <strong>Top 5 Matches</strong><br>
+                                    System suggests the best product matches with reasoning
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="text-2xl mr-3">3️⃣</span>
+                                <div>
+                                    <strong>Professional Quotation</strong><br>
+                                    Sales team reviews and generates detailed quotation
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="text-center">
+                        <button type="submit"
+                                class="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-bold py-4 px-12 rounded-lg text-lg shadow-lg transform transition duration-200 hover:scale-105">
+                            🚀 Submit Inquiry & Get AI-Matched Solutions
+                        </button>
+                        <p class="mt-4 text-sm text-gray-600">
+                            Our sales team will review the AI-matched products and contact you within 24 hours with a detailed quotation.
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p>&copy; 2025 Industrial Solutions. AI-Powered Product Matching & Quotation System</p>
+        </div>
+    </footer>
+
+    <script>
+        // Auto-save form data to localStorage
+        const form = document.querySelector('form');
+        const inputs = form.querySelectorAll('input, select, textarea');
+        
+        // Load saved data
+        inputs.forEach(input => {
+            const saved = localStorage.getItem(`inquiry_${input.name}`);
+            if (saved && input.type !== 'submit') {
+                input.value = saved;
+            }
+        });
+        
+        // Save data on change
+        inputs.forEach(input => {
+            input.addEventListener('change', () => {
+                localStorage.setItem(`inquiry_${input.name}`, input.value);
+            });
+        });
+        
+        // Clear localStorage on successful submit
+        form.addEventListener('submit', () => {
+            inputs.forEach(input => {
+                localStorage.removeItem(`inquiry_${input.name}`);
+            });
+        });
+    </script>
+</body>
+</html>
