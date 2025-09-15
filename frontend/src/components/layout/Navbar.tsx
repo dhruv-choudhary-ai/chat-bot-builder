@@ -4,11 +4,31 @@ import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { authAPI, tokenManager, type AdminInfo } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 export const Navbar = () => {
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [adminInfo, setAdminInfo] = useState<AdminInfo | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+
+  // Load admin info
+  useEffect(() => {
+    const loadAdminInfo = async () => {
+      try {
+        if (tokenManager.isAuthenticated()) {
+          const admin = await authAPI.getCurrentAdmin();
+          setAdminInfo(admin);
+        }
+      } catch (error) {
+        console.error('Failed to load admin info:', error);
+      }
+    };
+
+    loadAdminInfo();
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -25,9 +45,22 @@ export const Navbar = () => {
   }, []);
 
   const handleLogout = () => {
-    // Add logout logic here
-    console.log('Logging out...');
+    authAPI.logout();
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out.",
+    });
     navigate('/login');
+  };
+
+  const getInitials = (name?: string, email?: string) => {
+    if (name) {
+      return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    }
+    if (email) {
+      return email.slice(0, 2).toUpperCase();
+    }
+    return 'AD';
   };
 
   return (
@@ -73,7 +106,7 @@ export const Navbar = () => {
               >
                 <Avatar className="h-8 w-8">
                   <AvatarFallback className="bg-secondary text-foreground text-sm">
-                    <User className="h-4 w-4" />
+                    {adminInfo ? getInitials(adminInfo.name, adminInfo.email) : <User className="h-4 w-4" />}
                   </AvatarFallback>
                 </Avatar>
               </button>
@@ -86,12 +119,16 @@ export const Navbar = () => {
                     <div className="flex items-center space-x-3">
                       <Avatar className="h-10 w-10">
                         <AvatarFallback className="bg-blue-500 text-white">
-                          JD
+                          {adminInfo ? getInitials(adminInfo.name, adminInfo.email) : 'AD'}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="text-sm font-medium text-white">John Doe</p>
-                        <p className="text-xs text-gray-400">john@company.com</p>
+                        <p className="text-sm font-medium text-white">
+                          {adminInfo?.name || 'Admin User'}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {adminInfo?.email || 'admin@example.com'}
+                        </p>
                       </div>
                     </div>
                   </div>

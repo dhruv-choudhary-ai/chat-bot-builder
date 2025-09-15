@@ -1,18 +1,58 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PublicNavbar } from "@/components/layout/PublicNavbar";
+import { authAPI, tokenManager } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (tokenManager.isAuthenticated()) {
+      navigate("/admin");
+    }
+  }, [navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // UI only - no backend logic
-    console.log("Login attempt:", { email });
+    
+    if (!email || !password) {
+      toast({
+        title: "Error",
+        description: "Please enter both email and password",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      const response = await authAPI.login(email, password);
+      tokenManager.setToken(response.access_token);
+      
+      toast({
+        title: "Success",
+        description: "Logged in successfully!",
+      });
+      
+      navigate("/admin");
+    } catch (error) {
+      toast({
+        title: "Login Failed",
+        description: error instanceof Error ? error.message : "Please check your credentials",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -40,16 +80,18 @@ const Login = () => {
             />
             <Input
               type="password"
-              placeholder="Password (optional)"
+              placeholder="Password"
               value={password}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
               className="h-12 bg-gray-800 border-gray-700 text-white placeholder:text-gray-400 focus:border-gray-500 rounded-xl"
+              required
             />
             <Button 
               type="submit" 
-              className="w-full h-12 bg-white text-black hover:bg-gray-100 font-medium rounded-xl"
+              disabled={isLoading}
+              className="w-full h-12 bg-white text-black hover:bg-gray-100 font-medium rounded-xl disabled:opacity-50"
             >
-              Submit
+              {isLoading ? "Signing in..." : "Submit"}
             </Button>
           </form>
 

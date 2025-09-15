@@ -1,20 +1,66 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PublicNavbar } from "@/components/layout/PublicNavbar";
+import { authAPI, tokenManager } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 const Signup = () => {
   const [name, setName] = useState("");
-  const [companyName, setCompanyName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (tokenManager.isAuthenticated()) {
+      navigate("/admin");
+    }
+  }, [navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // UI only - no backend logic
-    console.log("Signup attempt:", { name, companyName, email });
+    
+    if (!name || !phoneNumber || !email || !password) {
+      toast({
+        title: "Error",
+        description: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      const response = await authAPI.signup({
+        email,
+        password,
+        name,
+        phone_number: phoneNumber,
+      });
+      
+      tokenManager.setToken(response.access_token);
+      
+      toast({
+        title: "Success",
+        description: response.msg || "Account created successfully!",
+      });
+      
+      navigate("/admin");
+    } catch (error) {
+      toast({
+        title: "Signup Failed",
+        description: error instanceof Error ? error.message : "Failed to create account",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -40,10 +86,10 @@ const Signup = () => {
               required
             />
             <Input
-              type="text"
-              placeholder="Company Name"
-              value={companyName}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCompanyName(e.target.value)}
+              type="tel"
+              placeholder="Phone Number (e.g., +1234567890)"
+              value={phoneNumber}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPhoneNumber(e.target.value)}
               className="h-12 bg-gray-800 border-gray-700 text-white placeholder:text-gray-400 focus:border-gray-500 rounded-xl"
               required
             />
@@ -65,9 +111,10 @@ const Signup = () => {
             />
             <Button 
               type="submit" 
-              className="w-full h-12 bg-white text-black hover:bg-gray-100 font-medium rounded-xl"
+              disabled={isLoading}
+              className="w-full h-12 bg-white text-black hover:bg-gray-100 font-medium rounded-xl disabled:opacity-50"
             >
-              Create Account
+              {isLoading ? "Creating Account..." : "Create Account"}
             </Button>
           </form>
 

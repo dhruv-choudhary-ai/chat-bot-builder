@@ -1,9 +1,18 @@
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { PublicNavbar } from "@/components/layout/PublicNavbar";
+import { tokenManager } from "@/lib/api";
 
 const Index = () => {
   const navigate = useNavigate();
+
+  // Redirect to admin if already authenticated
+  useEffect(() => {
+    if (tokenManager.isAuthenticated()) {
+      navigate("/admin");
+    }
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-black relative">

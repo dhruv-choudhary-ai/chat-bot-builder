@@ -2,6 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Bot, MoreVertical, Briefcase, GraduationCap, ShoppingCart, Heart, MessageSquare, Calculator, BookOpen, Users, Globe, Zap } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface Bot {
   id: string;
@@ -17,6 +18,11 @@ interface BotCardProps {
 }
 
 export const BotCard = ({ bot, onDelete }: BotCardProps) => {
+  const navigate = useNavigate();
+
+  const handleCardClick = () => {
+    navigate(`/admin/bot/${bot.id}`);
+  };
   // Get bot type colors
   const getTypeColor = (type: string) => {
     const colors = {
@@ -52,7 +58,11 @@ export const BotCard = ({ bot, onDelete }: BotCardProps) => {
   };
 
   return (
-    <Card className="group border-none hover:opacity-80 transition-all duration-200 relative" style={{ backgroundColor: 'hsl(230, 5%, 15%)' }}>
+    <Card 
+      className="group border-none hover:opacity-80 transition-all duration-200 relative cursor-pointer" 
+      style={{ backgroundColor: 'hsl(230, 5%, 15%)' }}
+      onClick={handleCardClick}
+    >
       {/* New Badge */}
       <div className="absolute top-3 left-3 z-10">
         <Badge className="bg-red-600 text-white text-xs px-2 py-1 rounded">

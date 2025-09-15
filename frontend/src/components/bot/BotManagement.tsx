@@ -83,7 +83,7 @@ export const BotManagement = ({
               <div className="flex items-center space-x-2">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                   !functionalitiesConfirmed ? 'bg-gray-600' :
-                  botStatus.deployed ? 'bg-green-600' : !botStatus.trained ? 'bg-gray-600' : 'bg-orange-600'
+                  botStatus.deployed ? 'bg-green-600' : !botStatus.trained ? 'bg-gray-600' : 'bg-red-800'
                 }`}>
                   <Rocket className="h-4 w-4 text-white" />
                 </div>
@@ -98,7 +98,7 @@ export const BotManagement = ({
                   ? 'bg-green-600/20 text-green-400' 
                   : !botStatus.trained 
                     ? 'bg-gray-600/20 text-gray-400' 
-                    : 'bg-orange-600/20 text-orange-400'
+                    : 'bg-red-800/20 text-red-400'
               }`}>
                 {!functionalitiesConfirmed ? 'Locked' :
                  botStatus.deployed ? 'Live' : !botStatus.trained ? 'Pending' : 'Ready'}
@@ -113,7 +113,7 @@ export const BotManagement = ({
                   ? 'bg-green-600/20 hover:bg-green-600/30 text-green-400'
                   : !botStatus.trained 
                     ? 'bg-gray-600/20 text-gray-500 cursor-not-allowed' 
-                    : 'bg-orange-600 hover:bg-orange-700 text-white'
+                    : 'bg-red-800 hover:bg-red-900 text-white'
               } border-0`}
               variant={botStatus.deployed ? "outline" : "default"}
             >

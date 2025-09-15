@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { 
   BarChart3, 
   MessageSquare, 
@@ -23,10 +24,63 @@ import { Train } from "@/components/bot/Train";
 import { Configure } from "@/components/bot/Configure";
 import { Help } from "@/components/bot/Help";
 import { BotManagement } from "@/components/bot/BotManagement";
+import { DeployModal } from "@/components/bot/DeployModal";
+import { tokenManager } from "@/lib/api";
 
 const Bot = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+
+  // Authentication check
+  useEffect(() => {
+    if (!tokenManager.isAuthenticated()) {
+      navigate("/login");
+    }
+  }, [navigate]);
+
+  // Bot ID validation
+  useEffect(() => {
+    if (!id) {
+      navigate("/admin");
+    }
+  }, [id, navigate]);
+  
+  // Bot information state
+  const [botInfo, setBotInfo] = useState<{
+    id: number;
+    name: string;
+    bot_type: string;
+    admin_id: number;
+  } | null>(null);
+  const [isLoadingBot, setIsLoadingBot] = useState(true);
+  
+  // Fetch bot information
+  useEffect(() => {
+    const fetchBotInfo = async () => {
+      if (!id) return;
+      
+      try {
+        setIsLoadingBot(true);
+        // For now, we'll create a mock bot info since there's no specific bot endpoint
+        // In a real implementation, you'd call an API like: botsAPI.getBot(id)
+        setBotInfo({
+          id: parseInt(id),
+          name: `Bot ${id}`,
+          bot_type: "Retail Bot", // This would come from the API
+          admin_id: 1 // This would come from the API
+        });
+      } catch (error) {
+        console.error("Failed to fetch bot info:", error);
+        navigate("/admin");
+      } finally {
+        setIsLoadingBot(false);
+      }
+    };
+    
+    fetchBotInfo();
+  }, [id, navigate]);
   
   // Bot functionalities state
   const [functionalities, setFunctionalities] = useState([
@@ -49,6 +103,9 @@ const Bot = () => {
     trained: true,
     deployed: false
   });
+  
+  // Deploy modal state
+  const [isDeployModalOpen, setIsDeployModalOpen] = useState(false);
 
   const toggleFunctionality = (id: string) => {
     if (!functionalitiesConfirmed || isEditing) {
@@ -75,7 +132,7 @@ const Bot = () => {
 
   const handleDeployBot = () => {
     if (botStatus.trained) {
-      setBotStatus(prev => ({ ...prev, deployed: true }));
+      setIsDeployModalOpen(true);
     }
   };
 
@@ -159,8 +216,19 @@ const Bot = () => {
 
       {/* Main Content */}
       <div className="flex-1 p-5 overflow-y-auto">
-        {/* Main Content - Full Width */}
-        <div>
+        {/* Loading State */}
+        {isLoadingBot ? (
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading bot information...</p>
+            </div>
+          </div>
+        ) : botInfo ? (
+          <div>
+            
+            {/* Main Content - Full Width */}
+            <div>
           {activeTab === "overview" && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
@@ -192,9 +260,26 @@ const Bot = () => {
           {activeTab === "train" && <Train />}
           {activeTab === "configure" && <Configure />}
           {activeTab === "help" && <Help />}
-        </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <p className="text-muted-foreground">Bot not found</p>
+            </div>
+          </div>
+        )}
       </div>
       </div>
+      
+      {/* Deploy Modal */}
+      {botInfo && (
+        <DeployModal 
+          isOpen={isDeployModalOpen}
+          onClose={() => setIsDeployModalOpen(false)}
+          botInfo={botInfo}
+        />
+      )}
     </div>
   );
 };

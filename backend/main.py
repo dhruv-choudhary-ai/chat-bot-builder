@@ -48,10 +48,10 @@ app = FastAPI()
 # CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Allows the Next.js frontend
-    allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
+    allow_origins=["*"],  # Allows all origins for embedded chatbot functionality
+    allow_credentials=False,  # Set to False when using allow_origins=["*"]
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["*"],
 )
 
 
@@ -386,6 +386,9 @@ class BotCreate(BaseModel):
     name: str
     bot_type: str
 
+class ChatMessage(BaseModel):
+    message: str
+
 @app.get("/admin/bots/available", response_model=List[str])
 def get_available_bots():
     """
@@ -427,6 +430,320 @@ def get_created_bots(
     current_admin: Admin = Depends(get_current_admin),
 ):
     return db.query(Bot).filter(Bot.admin_id == current_admin.id).all()
+
+@app.get("/admin/bots/{bot_id}/embed-script")
+def generate_embed_script(
+    bot_id: int,
+    primary_color: str = "#3B82F6",
+    position: str = "bottom-right",
+    greeting: str = None,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin),
+):
+    """
+    Generate a JavaScript embed script for the chatbot
+    """
+    bot = db.query(Bot).filter(Bot.id == bot_id, Bot.admin_id == current_admin.id).first()
+    if not bot:
+        raise HTTPException(status_code=404, detail="Bot not found")
+    
+    if not greeting:
+        greeting = f"Hi! I'm {bot.name}, your {bot.bot_type.lower()} assistant. How can I help you today?"
+    
+    # Generate position CSS
+    if position == "bottom-right":
+        position_css = "bottom: 20px; right: 20px;"
+    else:  # bottom-left
+        position_css = "bottom: 20px; left: 20px;"
+    
+    # Generate the embed script
+    embed_script = f"""
+(function() {{
+    // LifeBot Configuration
+    window.LifeBotConfig = {{
+        botId: {bot.id},
+        botName: "{bot.name}",
+        botType: "{bot.bot_type}",
+        primaryColor: "{primary_color}",
+        position: "{position}",
+        greeting: "{greeting}",
+        apiUrl: "http://localhost:8000"
+    }};
+    
+    // Create chatbot container
+    const createChatbot = () => {{
+        const chatbotContainer = document.createElement('div');
+        chatbotContainer.id = 'lifebot-chatbot';
+        chatbotContainer.innerHTML = `
+            <div id="lifebot-widget" style="
+                position: fixed;
+                {position_css}
+                z-index: 9999;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            ">
+                <div id="lifebot-button" style="
+                    width: 56px;
+                    height: 56px;
+                    background-color: {primary_color};
+                    border-radius: 50%;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    transition: transform 0.2s;
+                " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                        <path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"></path>
+                    </svg>
+                </div>
+                <div id="lifebot-chat" style="
+                    display: none;
+                    width: 320px;
+                    height: 400px;
+                    background: white;
+                    border-radius: 12px;
+                    box-shadow: 0 8px 28px rgba(0,0,0,0.12);
+                    position: absolute;
+                    bottom: 70px;
+                    {'right: 0;' if position == 'bottom-right' else 'left: 0;'}
+                    overflow: hidden;
+                ">
+                    <div style="
+                        background: {primary_color};
+                        color: white;
+                        padding: 16px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                    ">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 32px; height: 32px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                    <path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <div style="font-weight: 500; font-size: 14px;">{bot.name}</div>
+                                <div style="font-size: 12px; opacity: 0.8;">Online</div>
+                            </div>
+                        </div>
+                        <button id="lifebot-close" style="
+                            background: none;
+                            border: none;
+                            color: white;
+                            cursor: pointer;
+                            padding: 4px;
+                            border-radius: 4px;
+                        " onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='none'">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="lifebot-messages" style="
+                        height: 280px;
+                        overflow-y: auto;
+                        padding: 16px;
+                        background: #f8f9fa;
+                    ">
+                        <div style="
+                            background: white;
+                            padding: 12px;
+                            border-radius: 8px;
+                            margin-bottom: 12px;
+                            max-width: 80%;
+                            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                        ">
+                            {greeting}
+                        </div>
+                    </div>
+                    <div style="
+                        padding: 16px;
+                        border-top: 1px solid #e9ecef;
+                        display: flex;
+                        gap: 8px;
+                    ">
+                        <input id="lifebot-input" type="text" placeholder="Type your message..." style="
+                            flex: 1;
+                            padding: 8px 12px;
+                            border: 1px solid #ddd;
+                            border-radius: 20px;
+                            outline: none;
+                            font-size: 14px;
+                        ">
+                        <button id="lifebot-send" style="
+                            background: {primary_color};
+                            color: white;
+                            border: none;
+                            border-radius: 50%;
+                            width: 36px;
+                            height: 36px;
+                            cursor: pointer;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        ">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22,2 15,22 11,13 2,9"></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(chatbotContainer);
+
+        // Event listeners
+        const button = document.getElementById('lifebot-button');
+        const chat = document.getElementById('lifebot-chat');
+        const closeBtn = document.getElementById('lifebot-close');
+        const input = document.getElementById('lifebot-input');
+        const sendBtn = document.getElementById('lifebot-send');
+        const messages = document.getElementById('lifebot-messages');
+
+        button.addEventListener('click', () => {{
+            chat.style.display = chat.style.display === 'none' ? 'block' : 'none';
+        }});
+
+        closeBtn.addEventListener('click', () => {{
+            chat.style.display = 'none';
+        }});
+
+        const sendMessage = () => {{
+            const message = input.value.trim();
+            if (!message) return;
+
+            // Add user message
+            const userMsg = document.createElement('div');
+            userMsg.style.cssText = `
+                background: {primary_color};
+                color: white;
+                padding: 8px 12px;
+                border-radius: 8px;
+                margin: 8px 0;
+                max-width: 80%;
+                margin-left: auto;
+                text-align: right;
+            `;
+            userMsg.textContent = message;
+            messages.appendChild(userMsg);
+
+            input.value = '';
+            messages.scrollTop = messages.scrollHeight;
+
+            // Send message to LifeBot API
+            fetch('http://localhost:8000/chat/{bot.id}', {{
+                method: 'POST',
+                headers: {{
+                    'Content-Type': 'application/json',
+                }},
+                body: JSON.stringify({{ message: message }})
+            }})
+            .then(response => response.json())
+            .then(data => {{
+                const botMsg = document.createElement('div');
+                botMsg.style.cssText = `
+                    background: white;
+                    padding: 12px;
+                    border-radius: 8px;
+                    margin: 8px 0;
+                    max-width: 80%;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                `;
+                botMsg.textContent = data.response || "Thanks for your message! I'm processing your request.";
+                messages.appendChild(botMsg);
+                messages.scrollTop = messages.scrollHeight;
+            }})
+            .catch(error => {{
+                console.error('Error:', error);
+                const botMsg = document.createElement('div');
+                botMsg.style.cssText = `
+                    background: white;
+                    padding: 12px;
+                    border-radius: 8px;
+                    margin: 8px 0;
+                    max-width: 80%;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                `;
+                botMsg.textContent = "Sorry, I'm having trouble connecting. Please try again later.";
+                messages.appendChild(botMsg);
+                messages.scrollTop = messages.scrollHeight;
+            }});
+        }};
+
+        sendBtn.addEventListener('click', sendMessage);
+        input.addEventListener('keypress', (e) => {{
+            if (e.key === 'Enter') sendMessage();
+        }});
+    }};
+
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {{
+        document.addEventListener('DOMContentLoaded', createChatbot);
+    }} else {{
+        createChatbot();
+    }}
+}})();
+"""
+    
+    return Response(
+        content=embed_script,
+        media_type="application/javascript",
+        headers={
+            "Content-Disposition": f"attachment; filename=lifebot-{bot.id}-embed.js"
+        }
+    )
+
+@app.post("/chat/{bot_id}")
+def chat_with_bot(
+    bot_id: int,
+    message: ChatMessage,
+    db: Session = Depends(get_db)
+):
+    """
+    Handle chat messages for embedded chatbots
+    This endpoint is public to allow embedded chatbots to work on external websites
+    """
+    # Verify bot exists
+    bot = db.query(Bot).filter(Bot.id == bot_id).first()
+    if not bot:
+        raise HTTPException(status_code=404, detail="Bot not found")
+    
+    # For now, return a simple response based on bot type
+    # In a production system, this would integrate with your AI/NLP pipeline
+    bot_responses = {
+        "Retail Bot": "Thanks for your message! I'm here to help you with your shopping needs. What product are you looking for?",
+        "Banking Bot": "Hello! I'm your banking assistant. How can I help you with your banking needs today?",
+        "Insurance Bot": "Hi there! I'm here to assist you with insurance questions. What can I help you with?",
+        "Hotel Booking Bot": "Welcome! I can help you find and book the perfect hotel. Where are you planning to stay?",
+        "Telecom bot": "Hello! I'm your telecom assistant. How can I help you with your phone or internet services?",
+        "Course Enrollment bot": "Hi! I'm here to help you find and enroll in courses. What subject are you interested in?",
+        "Career Counselling Bot": "Hello! I'm your career counselor. How can I help you with your career development?",
+        "Lead Capturing Bot": "Thanks for reaching out! I'd love to help you learn more about our services. What are you interested in?",
+        "Real estate bot": "Hello! I'm here to help you with real estate matters. Are you looking to buy, sell, or rent?"
+    }
+    
+    # Get response based on bot type
+    response_text = bot_responses.get(
+        bot.bot_type, 
+        f"Hello! I'm {bot.name}. Thanks for your message: '{message.message}'. How can I assist you further?"
+    )
+    
+    # TODO: In production, integrate with actual AI/chatbot logic here
+    # This could involve:
+    # 1. Loading the bot's knowledge base
+    # 2. Processing the message through NLP
+    # 3. Generating appropriate responses
+    # 4. Saving conversation history
+    
+    return {
+        "response": response_text,
+        "bot_name": bot.name,
+        "bot_type": bot.bot_type
+    }
 
 
 @app.get("/admin/bots/{bot_id}/inbox/dates", response_model=List[date])
@@ -633,17 +950,33 @@ def create_admin_user(admin: AdminCreate, db: Session = Depends(get_db)):
 
     return {"msg": "Admin created successfully"}
 
-
 # -------------------------
 #  Omnichannel Webhooks
 # -------------------------
-from twilio.rest import Client
 from bot_loader import get_bot_by_type
+from twilio.rest import Client
+from backend.ragpipeline import retrieval_chain, save_conversation
 from channels.builders.web import WebMessageBuilder
 from channels.builders.twilio import TwilioMessageBuilder
 from channels.builders.sms import SmsMessageBuilder # New import
+from channels.builders.email import EmailMessageBuilder # Email import
+from channels.builders.telegram import TelegramMessageBuilder # Telegram import
+from channels.builders.instagram import InstagramMessageBuilder # Instagram import
+from channels.builders.messenger import MessengerMessageBuilder # Messenger import
 from channels.schemas import StandardizedMessage
 from typing import Dict, Any
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import imaplib
+import email
+from email.header import decode_header
+import threading
+import time
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail, From, To, Subject, PlainTextContent, HtmlContent
+import requests
+import json
 
 # --- Twilio Configuration ---
 # It is strongly recommended to use environment variables for these
@@ -652,6 +985,71 @@ TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 TWILIO_WHATSAPP_NUMBER = os.getenv("TWILIO_WHATSAPP_NUMBER") # e.g., 'whatsapp:+14155238886'
 TWILIO_SMS_NUMBER = os.getenv("TWILIO_SMS_NUMBER") # New SMS number env var
 
+# --- Telegram Configuration ---
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_WEBHOOK_URL = os.getenv("TELEGRAM_WEBHOOK_URL")
+
+# --- Instagram Configuration ---
+INSTAGRAM_ACCESS_TOKEN = os.getenv("INSTAGRAM_ACCESS_TOKEN")
+INSTAGRAM_VERIFY_TOKEN = os.getenv("INSTAGRAM_VERIFY_TOKEN")
+INSTAGRAM_APP_SECRET = os.getenv("INSTAGRAM_APP_SECRET")
+INSTAGRAM_PAGE_ID = os.getenv("INSTAGRAM_PAGE_ID")
+
+# --- Messenger Configuration ---
+MESSENGER_ACCESS_TOKEN = os.getenv("MESSENGER_ACCESS_TOKEN")
+MESSENGER_VERIFY_TOKEN = os.getenv("MESSENGER_VERIFY_TOKEN")
+MESSENGER_APP_SECRET = os.getenv("MESSENGER_APP_SECRET")
+MESSENGER_PAGE_ID = os.getenv("MESSENGER_PAGE_ID")
+
+# --- Email Configuration ---
+# SendGrid Configuration (Primary)
+SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
+EMAIL_FROM_ADDRESS = os.getenv("EMAIL_FROM_ADDRESS")
+EMAIL_FROM_NAME = os.getenv("EMAIL_FROM_NAME", "AI Assistant")
+
+# Legacy SMTP Configuration (Backup)
+EMAIL_SMTP_SERVER = os.getenv("EMAIL_SMTP_SERVER", "smtp.gmail.com")
+EMAIL_SMTP_PORT = int(os.getenv("EMAIL_SMTP_PORT", "587"))
+EMAIL_USERNAME = os.getenv("EMAIL_USERNAME")  # Your email address
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")  # Your email password or app password
+EMAIL_IMAP_SERVER = os.getenv("EMAIL_IMAP_SERVER", "imap.gmail.com")
+EMAIL_IMAP_PORT = int(os.getenv("EMAIL_IMAP_PORT", "993"))
+
+# Debug: Print Twilio configuration at startup
+print("=== TWILIO CONFIGURATION ===")
+print(f"TWILIO_ACCOUNT_SID: {TWILIO_ACCOUNT_SID}")
+print(f"TWILIO_AUTH_TOKEN: {'*' * len(TWILIO_AUTH_TOKEN) if TWILIO_AUTH_TOKEN else 'Not set'}")
+print(f"TWILIO_WHATSAPP_NUMBER: {TWILIO_WHATSAPP_NUMBER}")
+print(f"TWILIO_SMS_NUMBER: {TWILIO_SMS_NUMBER}")
+print("=== END CONFIGURATION ===")
+
+# Debug: Print Telegram configuration at startup
+print("=== TELEGRAM CONFIGURATION ===")
+print(f"TELEGRAM_BOT_TOKEN: {'*' * len(TELEGRAM_BOT_TOKEN) if TELEGRAM_BOT_TOKEN else 'Not set'}")
+print(f"TELEGRAM_WEBHOOK_URL: {TELEGRAM_WEBHOOK_URL}")
+print("=== END TELEGRAM CONFIGURATION ===")
+
+# Debug: Print Email configuration at startup
+print("=== EMAIL CONFIGURATION ===")
+print(f"SENDGRID_API_KEY: {'*' * len(SENDGRID_API_KEY) if SENDGRID_API_KEY else 'Not set'}")
+print(f"EMAIL_FROM_ADDRESS: {EMAIL_FROM_ADDRESS}")
+print(f"EMAIL_FROM_NAME: {EMAIL_FROM_NAME}")
+print(f"EMAIL_SMTP_SERVER: {EMAIL_SMTP_SERVER}")
+print(f"EMAIL_SMTP_PORT: {EMAIL_SMTP_PORT}")
+print(f"EMAIL_USERNAME: {EMAIL_USERNAME}")
+print(f"EMAIL_PASSWORD: {'*' * len(EMAIL_PASSWORD) if EMAIL_PASSWORD else 'Not set'}")
+print(f"EMAIL_IMAP_SERVER: {EMAIL_IMAP_SERVER}")
+print(f"EMAIL_IMAP_PORT: {EMAIL_IMAP_PORT}")
+print("=== END EMAIL CONFIGURATION ===")
+
+# Initialize SendGrid client
+sendgrid_client = None
+if SENDGRID_API_KEY:
+    sendgrid_client = SendGridAPIClient(api_key=SENDGRID_API_KEY)
+    print("SendGrid client initialized successfully")
+else:
+    print("WARNING: SendGrid API key not found. Email sending will use SMTP fallback.")
+
 # Initialize the Twilio client if credentials are provided
 twilio_client = None
 if TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN:
@@ -659,6 +1057,354 @@ if TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN:
 else:
     print("WARNING: Twilio credentials not found. WhatsApp/SMS replies will be disabled.")
 
+# Email sending function using SendGrid
+def send_email_reply(to_email: str, subject: str, body: str, reply_to_subject: str = None):
+    """Send email reply using SendGrid (primary) or SMTP (fallback)"""
+    
+    # Prepare subject
+    final_subject = subject
+    if reply_to_subject and not reply_to_subject.lower().startswith('re:'):
+        final_subject = f"Re: {reply_to_subject}"
+    elif reply_to_subject:
+        final_subject = reply_to_subject
+    
+    # Try SendGrid first
+    if sendgrid_client and EMAIL_FROM_ADDRESS:
+        try:
+            from_email = From(EMAIL_FROM_ADDRESS, EMAIL_FROM_NAME)
+            to_email_obj = To(to_email)
+            subject_obj = Subject(final_subject)
+            plain_text_content = PlainTextContent(body)
+            html_content = HtmlContent(f"<p>{body.replace(chr(10), '<br>')}</p>")
+            
+            mail = Mail(
+                from_email=from_email,
+                to_emails=to_email_obj,
+                subject=subject_obj,
+                plain_text_content=plain_text_content,
+                html_content=html_content
+            )
+            
+            response = sendgrid_client.send(mail)
+            print(f"SendGrid email sent successfully to: {to_email} (Status: {response.status_code})")
+            return True
+            
+        except Exception as e:
+            print(f"ERROR: SendGrid failed: {e}")
+            print("Falling back to SMTP...")
+    
+    # Fallback to SMTP
+    if not EMAIL_USERNAME or not EMAIL_PASSWORD:
+        print("ERROR: No email credentials configured (neither SendGrid nor SMTP)")
+        return False
+    
+    try:
+        # Create message
+        msg = MIMEMultipart()
+        msg['From'] = f"{EMAIL_FROM_NAME} <{EMAIL_USERNAME}>"
+        msg['To'] = to_email
+        msg['Subject'] = final_subject
+        
+        # Add body
+        msg.attach(MIMEText(body, 'plain'))
+        
+        # Send email
+        server = smtplib.SMTP(EMAIL_SMTP_SERVER, EMAIL_SMTP_PORT)
+        server.starttls()
+        server.login(EMAIL_USERNAME, EMAIL_PASSWORD)
+        text = msg.as_string()
+        server.sendmail(EMAIL_USERNAME, to_email, text)
+        server.quit()
+        
+        print(f"SMTP email sent successfully to: {to_email}")
+        return True
+        
+    except Exception as e:
+        print(f"ERROR: Failed to send email via SMTP: {e}")
+        return False
+
+
+# Telegram sending functions
+def send_telegram_message(chat_id: str, text: str):
+    """Send message via Telegram Bot API"""
+    if not TELEGRAM_BOT_TOKEN:
+        print("ERROR: Telegram bot token not configured")
+        return False
+    
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        payload = {
+            "chat_id": chat_id,
+            "text": text,
+            "parse_mode": "HTML"  # Enable HTML formatting
+        }
+        
+        response = requests.post(url, json=payload)
+        
+        if response.status_code == 200:
+            print(f"Telegram message sent successfully to chat_id: {chat_id}")
+            return True
+        else:
+            print(f"ERROR: Failed to send Telegram message: {response.status_code} - {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"ERROR: Failed to send Telegram message: {e}")
+        return False
+
+
+def set_telegram_webhook():
+    """Set up Telegram webhook"""
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_WEBHOOK_URL:
+        print("WARNING: Telegram credentials not configured, skipping webhook setup")
+        return False
+    
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook"
+        payload = {
+            "url": TELEGRAM_WEBHOOK_URL
+        }
+        
+        response = requests.post(url, json=payload)
+        
+        if response.status_code == 200:
+            result = response.json()
+            if result.get("ok"):
+                print(f"Telegram webhook set successfully: {TELEGRAM_WEBHOOK_URL}")
+                return True
+            else:
+                print(f"ERROR: Failed to set Telegram webhook: {result.get('description')}")
+                return False
+        else:
+            print(f"ERROR: Failed to set webhook: {response.status_code} - {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"ERROR: Failed to set Telegram webhook: {e}")
+        return False
+
+
+# Instagram sending functions
+def send_instagram_message(recipient_id: str, text: str):
+    """Send message via Instagram Graph API"""
+    if not INSTAGRAM_ACCESS_TOKEN:
+        print("ERROR: Instagram access token not configured")
+        return False
+    
+    try:
+        url = f"https://graph.facebook.com/v18.0/{INSTAGRAM_PAGE_ID}/messages"
+        payload = {
+            "recipient": {"id": recipient_id},
+            "message": {"text": text},
+            "access_token": INSTAGRAM_ACCESS_TOKEN
+        }
+        
+        response = requests.post(url, json=payload)
+        
+        if response.status_code == 200:
+            print(f"Instagram message sent successfully to recipient_id: {recipient_id}")
+            return True
+        else:
+            print(f"ERROR: Failed to send Instagram message: {response.status_code} - {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"ERROR: Failed to send Instagram message: {e}")
+        return False
+
+
+# Messenger sending functions
+def send_messenger_message(recipient_id: str, text: str):
+    """Send message via Messenger Graph API"""
+    if not MESSENGER_ACCESS_TOKEN:
+        print("ERROR: Messenger access token not configured")
+        return False
+    
+    try:
+        url = f"https://graph.facebook.com/v18.0/{MESSENGER_PAGE_ID}/messages"
+        payload = {
+            "recipient": {"id": recipient_id},
+            "message": {"text": text},
+            "access_token": MESSENGER_ACCESS_TOKEN
+        }
+        
+        response = requests.post(url, json=payload)
+        
+        if response.status_code == 200:
+            print(f"Messenger message sent successfully to recipient_id: {recipient_id}")
+            return True
+        else:
+            print(f"ERROR: Failed to send Messenger message: {response.status_code} - {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"ERROR: Failed to send Messenger message: {e}")
+        return False
+
+
+def verify_facebook_webhook(hub_mode: str, hub_challenge: str, hub_verify_token: str, platform: str):
+    """Verify Facebook webhook for Instagram or Messenger"""
+    expected_token = INSTAGRAM_VERIFY_TOKEN if platform == "instagram" else MESSENGER_VERIFY_TOKEN
+    
+    if hub_mode == "subscribe" and hub_verify_token == expected_token:
+        print(f"{platform.capitalize()} webhook verified successfully")
+        return hub_challenge
+    else:
+        print(f"ERROR: {platform.capitalize()} webhook verification failed")
+        return None
+
+
+# IMAP email checking function
+# Commented out temporarily due to IMAP authentication issues
+# def check_email_inbox():
+#     """Check IMAP inbox for new emails and process them"""
+#     if not EMAIL_USERNAME or not EMAIL_PASSWORD or EMAIL_USERNAME == "your-email@gmail.com":
+#         print("IMAP credentials not properly configured, skipping email check")
+#         return
+    
+    # try:
+        # Connect to IMAP server
+        mail = imaplib.IMAP4_SSL(EMAIL_IMAP_SERVER, EMAIL_IMAP_PORT)
+        mail.login(EMAIL_USERNAME, EMAIL_PASSWORD)
+        mail.select("inbox")
+        
+        # Search for unread emails
+        status, messages = mail.search(None, "UNSEEN")
+        email_ids = messages[0].split()
+        
+        print(f"Found {len(email_ids)} unread emails")
+        
+        for email_id in email_ids:
+            try:
+                # Fetch email
+                status, msg_data = mail.fetch(email_id, "(RFC822)")
+                email_body = msg_data[0][1]
+                email_message = email.message_from_bytes(email_body)
+                
+                # Extract email details
+                from_header = email_message["From"]
+                subject = email_message["Subject"]
+                
+                # Decode subject if needed
+                if subject:
+                    decoded_subject = decode_header(subject)[0]
+                    if decoded_subject[1]:
+                        subject = decoded_subject[0].decode(decoded_subject[1])
+                    else:
+                        subject = str(decoded_subject[0])
+                
+                # Extract email body
+                body = ""
+                if email_message.is_multipart():
+                    for part in email_message.walk():
+                        if part.get_content_type() == "text/plain":
+                            body = part.get_payload(decode=True).decode()
+                            break
+                else:
+                    body = email_message.get_payload(decode=True).decode()
+                
+                # Create payload for processing
+                email_payload = {
+                    "from": from_header,
+                    "subject": subject,
+                    "text": body,
+                    "body": body
+                }
+                
+                print(f"Processing email from: {from_header}")
+                
+                # Process email through our handler
+                # Note: This is a synchronous call, you might want to make it async
+                # For now, we'll create a simple processing function
+                process_incoming_email(email_payload)
+                
+                # Mark email as read
+                mail.store(email_id, '+FLAGS', '\\Seen')
+                
+            except Exception as e:
+                print(f"Error processing email {email_id}: {e}")
+                continue
+        
+#         mail.close()
+#         mail.logout()
+        
+#     except Exception as e:
+#         print(f"Error checking email inbox: {e}")
+#         print("Note: If using SendGrid, consider disabling IMAP and using webhooks instead")
+    pass  # Placeholder since function is commented out
+
+
+def process_incoming_email(email_payload):
+    """Process incoming email synchronously"""
+    try:
+        from database.sessions import session_local
+        db = session_local()
+        
+        builder = EmailMessageBuilder(email_payload)
+        standardized_message = builder.build()
+        question = standardized_message.content
+
+        # Find user
+        user = db.query(User).filter(User.email == standardized_message.sender_id).first()
+        if not user:
+            print(f"User with email '{standardized_message.sender_id}' not found.")
+            db.close()
+            return
+
+        # Generate AI response
+        result = retrieval_chain.invoke({"input": question})
+        ai_response_text = result.get("answer", "I could not find an answer.")
+
+        # Save conversation in the same format as web chat (question + answer together)
+        conversation = Conversation(
+            user_id=user.id,
+            interaction={
+                "question": question, 
+                "answer": ai_response_text,
+                "channel": "email"
+            },
+            resolved=False,
+        )
+        db.add(conversation)
+        db.commit()
+        db.refresh(conversation)
+
+        # Send email reply
+        original_subject = standardized_message.metadata.get("subject", "")
+        send_email_reply(
+            to_email=standardized_message.sender_id,
+            subject="AI Assistant Response",
+            body=ai_response_text,
+            reply_to_subject=original_subject
+        )
+        
+        db.close()
+        print(f"Email processed and reply sent to: {standardized_message.sender_id}")
+        
+    except Exception as e:
+        print(f"Error in process_incoming_email: {e}")
+
+
+# Email polling function
+def start_email_polling():
+    """Start email polling in background thread"""
+    def email_polling_loop():
+        while True:
+            try:
+                # check_email_inbox()  # Commented out temporarily
+                print("Email polling disabled - using SendGrid webhooks instead")
+                time.sleep(300)  # Check every 5 minutes instead of 30 seconds
+            except Exception as e:
+                print(f"Error in email polling loop: {e}")
+                time.sleep(60)  # Wait longer on error
+    
+    # Only start IMAP polling if SMTP credentials are properly configured
+    if EMAIL_USERNAME and EMAIL_PASSWORD and EMAIL_USERNAME != "your-email@gmail.com":
+        thread = threading.Thread(target=email_polling_loop, daemon=True)
+        thread.start()
+        print("Email IMAP polling started")
+    else:
+        print("Email IMAP polling disabled - using SendGrid webhooks for incoming emails")
 
 from bots.base_bot import QueryRequest, save_conversation
 
@@ -731,18 +1477,6 @@ async def handle_web_message(payload: Dict[Any, Any], db: Session = Depends(get_
         builder = WebMessageBuilder(payload)
         standardized_message = builder.build()
         question = standardized_message.content
-        bot_id = payload.get("bot_id")
-
-        if not bot_id:
-            raise HTTPException(status_code=400, detail="bot_id is required")
-
-        bot = db.query(Bot).filter(Bot.id == bot_id).first()
-        if not bot:
-            raise HTTPException(status_code=404, detail="Bot not found")
-
-        bot_instance = get_bot_by_type(bot.bot_type)
-        if not bot_instance:
-            raise HTTPException(status_code=500, detail="Bot implementation not found")
 
         # --- Find user and save their message ---
         user = db.query(User).filter(User.email == standardized_message.sender_id).first()
@@ -752,20 +1486,18 @@ async def handle_web_message(payload: Dict[Any, Any], db: Session = Depends(get_
         save_conversation(
             db=db, 
             user_id=user.id, 
-            bot_id=bot_id,
             source="user", 
             content=question, 
             channel=standardized_message.channel_name
         )
 
         # --- Generate and Save AI Response ---
-        result = bot_instance.retrieval_chain.invoke({"input": question})
+        result = retrieval_chain.invoke({"input": question})
         ai_response_text = result.get("answer", "I could not find an answer.")
 
         save_conversation(
             db=db, 
             user_id=user.id, 
-            bot_id=bot_id,
             source="bot", 
             content=ai_response_text, 
             channel=standardized_message.channel_name
@@ -778,24 +1510,32 @@ async def handle_web_message(payload: Dict[Any, Any], db: Session = Depends(get_
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.post("/hooks/twilio/{bot_id}")
-async def handle_twilio_message(request: Request, bot_id: int, db: Session = Depends(get_db)):
+@app.post("/hooks/twilio")
+async def handle_twilio_message(request: Request, db: Session = Depends(get_db)):
     """
-    Handles incoming SMS from Twilio, gets an AI response, and sends a reply.
+    Handles incoming WhatsApp and SMS messages from Twilio, gets an AI response, and sends a reply.
     """
     try:
         payload = await request.form()
+        
+        # Debug: Print all payload data
+        print("=== TWILIO WEBHOOK DEBUG ===")
+        for key, value in payload.items():
+            print(f"{key}: {value}")
+        
+        # Check if this is a WhatsApp message by examining the 'From' field
+        from_number = payload.get("From", "")
+        to_number = payload.get("To", "")
+        is_whatsapp = from_number.startswith("whatsapp:")
+        
+        print(f"From: {from_number}")
+        print(f"To: {to_number}")
+        print(f"Is WhatsApp: {is_whatsapp}")
+        print("=== END DEBUG ===")
+        
         builder = TwilioMessageBuilder(payload)
         standardized_message = builder.build()
         question = standardized_message.content
-
-        bot = db.query(Bot).filter(Bot.id == bot_id).first()
-        if not bot:
-            raise HTTPException(status_code=404, detail="Bot not found")
-
-        bot_instance = get_bot_by_type(bot.bot_type)
-        if not bot_instance:
-            raise HTTPException(status_code=500, detail="Bot implementation not found")
 
         # --- Find user and save their message ---
         user = db.query(User).filter(User.phone_number == standardized_message.sender_id).first()
@@ -803,39 +1543,62 @@ async def handle_twilio_message(request: Request, bot_id: int, db: Session = Dep
             print(f"User with phone number '{standardized_message.sender_id}' not found.")
             return Response(content="", media_type="application/xml")
 
-        save_conversation(
-            db=db, 
-            user_id=user.id, 
-            bot_id=bot_id,
-            source="user", 
-            content=question, 
-            channel=standardized_message.channel_name
-        )
-
         # --- Generate and Send AI Response ---
-        result = bot_instance.retrieval_chain.invoke({"input": question})
+        result = retrieval_chain.invoke({"input": question})
         ai_response_text = result.get("answer", "I could not find an answer.")
 
-        save_conversation(
-            db=db, 
-            user_id=user.id, 
-            bot_id=bot_id,
-            source="bot", 
-            content=ai_response_text, 
-            channel=standardized_message.channel_name
+        # Save conversation in the same format as web chat (question + answer together)
+        conversation = Conversation(
+            user_id=user.id,
+            interaction={
+                "question": question, 
+                "answer": ai_response_text,
+                "channel": "whatsapp" if is_whatsapp else "sms"
+            },
+            resolved=False,
         )
+        db.add(conversation)
+        db.commit()
+        db.refresh(conversation)
 
-        # --- Send Reply via Twilio ---
-        if twilio_client and TWILIO_WHATSAPP_NUMBER:
+        # --- Send Reply via Twilio (Channel-specific) ---
+        if twilio_client:
             try:
-                to_number = f"whatsapp:{standardized_message.sender_id}"
-                twilio_client.messages.create(
-                    from_=TWILIO_WHATSAPP_NUMBER,
-                    body=ai_response_text,
-                    to=to_number
-                )
+                if is_whatsapp:
+                    # WhatsApp message - reply via WhatsApp
+                    if not TWILIO_WHATSAPP_NUMBER:
+                        print("ERROR: TWILIO_WHATSAPP_NUMBER not configured")
+                        return Response(content="", media_type="application/xml")
+                    
+                    reply_to = f"whatsapp:{standardized_message.sender_id}"
+                    print(f"Sending WhatsApp reply FROM: {TWILIO_WHATSAPP_NUMBER} TO: {reply_to}")
+                    
+                    twilio_client.messages.create(
+                        from_=TWILIO_WHATSAPP_NUMBER,
+                        body=ai_response_text,
+                        to=reply_to
+                    )
+                    print(f"WhatsApp reply sent successfully")
+                else:
+                    # SMS message - reply via SMS
+                    if not TWILIO_SMS_NUMBER:
+                        print("ERROR: TWILIO_SMS_NUMBER not configured")
+                        return Response(content="", media_type="application/xml")
+                    
+                    reply_to = standardized_message.sender_id
+                    print(f"Sending SMS reply FROM: {TWILIO_SMS_NUMBER} TO: {reply_to}")
+                    
+                    twilio_client.messages.create(
+                        from_=TWILIO_SMS_NUMBER,
+                        body=ai_response_text,
+                        to=reply_to
+                    )
+                    print(f"SMS reply sent successfully")
+                    
             except Exception as e:
                 print(f"ERROR: Failed to send Twilio message: {e}")
+        else:
+            print("ERROR: Twilio client not initialized")
         
         return Response(content="", media_type="application/xml")
 
@@ -844,24 +1607,17 @@ async def handle_twilio_message(request: Request, bot_id: int, db: Session = Dep
         return Response(content="", media_type="application/xml")
 
 
-@app.post("/hooks/sms/{bot_id}")
-async def handle_sms_message(request: Request, bot_id: int, db: Session = Depends(get_db)):
+@app.post("/hooks/sms")
+async def handle_sms_message(request: Request, db: Session = Depends(get_db)):
     """
     Handles incoming SMS from Twilio, gets an AI response, and sends a reply.
     """
     try:
         payload = await request.form()
+        
         builder = SmsMessageBuilder(payload)
         standardized_message = builder.build()
         question = standardized_message.content
-
-        bot = db.query(Bot).filter(Bot.id == bot_id).first()
-        if not bot:
-            raise HTTPException(status_code=404, detail="Bot not found")
-
-        bot_instance = get_bot_by_type(bot.bot_type)
-        if not bot_instance:
-            raise HTTPException(status_code=500, detail="Bot implementation not found")
 
         # --- Find user and save their message ---
         user = db.query(User).filter(User.phone_number == standardized_message.sender_id).first()
@@ -869,29 +1625,25 @@ async def handle_sms_message(request: Request, bot_id: int, db: Session = Depend
             print(f"User with phone number '{standardized_message.sender_id}' not found.")
             return Response(content="", media_type="application/xml")
 
-        save_conversation(
-            db=db, 
-            user_id=user.id, 
-            bot_id=bot_id,
-            source="user", 
-            content=question, 
-            channel=standardized_message.channel_name
-        )
-
         # --- Generate and Send AI Response ---
-        result = bot_instance.retrieval_chain.invoke({"input": question})
+        result = retrieval_chain.invoke({"input": question})
         ai_response_text = result.get("answer", "I could not find an answer.")
 
-        save_conversation(
-            db=db, 
-            user_id=user.id, 
-            bot_id=bot_id,
-            source="bot", 
-            content=ai_response_text, 
-            channel=standardized_message.channel_name
+        # Save conversation in the same format as web chat (question + answer together)
+        conversation = Conversation(
+            user_id=user.id,
+            interaction={
+                "question": question, 
+                "answer": ai_response_text,
+                "channel": "sms"
+            },
+            resolved=False,
         )
+        db.add(conversation)
+        db.commit()
+        db.refresh(conversation)
 
-        # --- Send Reply via Twilio ---
+        # --- Send Reply via Twilio SMS ---
         if twilio_client and TWILIO_SMS_NUMBER:
             try:
                 # For SMS, no special prefix is needed for the 'to' number
@@ -900,8 +1652,11 @@ async def handle_sms_message(request: Request, bot_id: int, db: Session = Depend
                     body=ai_response_text,
                     to=standardized_message.sender_id
                 )
+                print(f"SMS reply sent to: {standardized_message.sender_id}")
             except Exception as e:
                 print(f"ERROR: Failed to send SMS message: {e}")
+        else:
+            print("WARNING: SMS number not configured or Twilio client not available")
         
         return Response(content="", media_type="application/xml")
 
@@ -909,6 +1664,389 @@ async def handle_sms_message(request: Request, bot_id: int, db: Session = Depend
         print(f"An unexpected error occurred in handle_sms_message: {e}")
         return Response(content="", media_type="application/xml")
 
+
+@app.post("/hooks/email")
+async def handle_email_message(payload: Dict[Any, Any], db: Session = Depends(get_db)):
+    """
+    Handles incoming emails (from email webhooks like SendGrid, Mailgun, etc.), 
+    gets an AI response, and sends a reply.
+    """
+    try:
+        print("=== EMAIL WEBHOOK DEBUG ===")
+        print(f"Received email payload: {payload}")
+        print("=== END EMAIL DEBUG ===")
+        
+        builder = EmailMessageBuilder(payload)
+        standardized_message = builder.build()
+        question = standardized_message.content
+
+        # --- Find user and save their message ---
+        user = db.query(User).filter(User.email == standardized_message.sender_id).first()
+        if not user:
+            print(f"User with email '{standardized_message.sender_id}' not found.")
+            # For email, we might want to send a response anyway or create a guest conversation
+            return {"status": "user_not_found", "message": "User not registered"}
+
+        # --- Generate and Send AI Response ---
+        result = retrieval_chain.invoke({"input": question})
+        ai_response_text = result.get("answer", "I could not find an answer.")
+
+        # Save conversation in the same format as web chat (question + answer together)
+        conversation = Conversation(
+            user_id=user.id,
+            interaction={
+                "question": question, 
+                "answer": ai_response_text,
+                "channel": "email"
+            },
+            resolved=False,
+        )
+        db.add(conversation)
+        db.commit()
+        db.refresh(conversation)
+
+        # --- Send Reply via Email ---
+        original_subject = standardized_message.metadata.get("subject", "")
+        success = send_email_reply(
+            to_email=standardized_message.sender_id,
+            subject="AI Assistant Response",
+            body=ai_response_text,
+            reply_to_subject=original_subject
+        )
+        
+        if success:
+            return {"status": "success", "message": "Email reply sent"}
+        else:
+            return {"status": "error", "message": "Failed to send email reply"}
+
+    except Exception as e:
+        print(f"An unexpected error occurred in handle_email_message: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+@app.post("/hooks/sendgrid")
+async def handle_sendgrid_webhook(request: Request, db: Session = Depends(get_db)):
+    """
+    Handle SendGrid Inbound Parse webhook
+    SendGrid sends form data, not JSON
+    """
+    try:
+        form_data = await request.form()
+        
+        # Extract email data from SendGrid format
+        payload = {
+            "from": form_data.get("from"),
+            "to": form_data.get("to"),
+            "subject": form_data.get("subject"),
+            "text": form_data.get("text"),
+            "html": form_data.get("html")
+        }
+        
+        print("=== SENDGRID WEBHOOK DEBUG ===")
+        print(f"Received SendGrid payload: {payload}")
+        print("=== END SENDGRID DEBUG ===")
+        
+        # Process through the standard email handler
+        return await handle_email_message(payload, db)
+        
+    except Exception as e:
+        print(f"Error in SendGrid webhook handler: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+@app.post("/hooks/telegram")
+async def handle_telegram_message(request: Request, db: Session = Depends(get_db)):
+    """
+    Handles incoming Telegram messages, gets an AI response, and sends a reply.
+    """
+    try:
+        payload = await request.json()
+        
+        print("=== TELEGRAM WEBHOOK DEBUG ===")
+        print(f"Received Telegram payload: {payload}")
+        print("=== END TELEGRAM DEBUG ===")
+        
+        builder = TelegramMessageBuilder(payload)
+        standardized_message = builder.build()
+        question = standardized_message.content
+
+        # Extract Telegram chat ID for replies
+        telegram_chat_id = standardized_message.sender_id
+        
+        # --- Find user by Telegram ID or create a mapping ---
+        # Note: You might want to store telegram_user_id in User table
+        # For now, we'll try to find by phone number if available
+        user = None
+        
+        # Try to find user by stored telegram_user_id (if you add this field)
+        # user = db.query(User).filter(User.telegram_user_id == telegram_chat_id).first()
+        
+        # For demo purposes, let's use a default user or create a guest system
+        # In production, you'd want users to register their Telegram ID
+        user = db.query(User).first()  # Use first user for demo
+        
+        if not user:
+            # Send registration message
+            send_telegram_message(
+                telegram_chat_id, 
+                "👋 Welcome! Please register on our platform first to use this service.\n\nVisit: https://yourdomain.com/register"
+            )
+            return {"status": "user_not_found", "message": "User not registered"}
+
+        # --- Generate and Send AI Response ---
+        result = retrieval_chain.invoke({"input": question})
+        ai_response_text = result.get("answer", "I could not find an answer.")
+
+        # Save conversation in the same format as other channels
+        conversation = Conversation(
+            user_id=user.id,
+            interaction={
+                "question": question, 
+                "answer": ai_response_text,
+                "channel": "telegram"
+            },
+            resolved=False,
+        )
+        db.add(conversation)
+        db.commit()
+        db.refresh(conversation)
+
+        # --- Send Reply via Telegram ---
+        success = send_telegram_message(telegram_chat_id, ai_response_text)
+        
+        if success:
+            return {"status": "success", "message": "Telegram reply sent"}
+        else:
+            return {"status": "error", "message": "Failed to send Telegram reply"}
+
+    except Exception as e:
+        print(f"An unexpected error occurred in handle_telegram_message: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+@app.get("/hooks/instagram")
+async def verify_instagram_webhook(request: Request):
+    """Verify Instagram webhook"""
+    hub_mode = request.query_params.get("hub.mode")
+    hub_challenge = request.query_params.get("hub.challenge")
+    hub_verify_token = request.query_params.get("hub.verify_token")
+    
+    challenge = verify_facebook_webhook(hub_mode, hub_challenge, hub_verify_token, "instagram")
+    if challenge:
+        return Response(content=challenge, media_type="text/plain")
+    else:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+
+@app.post("/hooks/instagram")
+async def handle_instagram_message(request: Request, db: Session = Depends(get_db)):
+    """
+    Handles incoming Instagram messages, gets an AI response, and sends a reply.
+    """
+    try:
+        payload = await request.json()
+        
+        print("=== INSTAGRAM WEBHOOK DEBUG ===")
+        print(f"Received Instagram payload: {payload}")
+        print("=== END INSTAGRAM DEBUG ===")
+        
+        # Skip if it's a test webhook
+        if payload.get("object") == "instagram" and not payload.get("entry"):
+            return {"status": "test_webhook", "message": "Test webhook received"}
+        
+        builder = InstagramMessageBuilder(payload)
+        standardized_message = builder.build()
+        question = standardized_message.content
+
+        # Extract Instagram sender ID for replies
+        instagram_sender_id = standardized_message.sender_id
+        
+        # Find user - Instagram integration typically requires user registration
+        user = db.query(User).first()  # Use first user for demo
+        
+        if not user:
+            # Send registration message
+            send_instagram_message(
+                instagram_sender_id, 
+                "👋 Welcome! Please register on our platform first to use this service."
+            )
+            return {"status": "user_not_found", "message": "User not registered"}
+
+        # Generate AI Response
+        result = retrieval_chain.invoke({"input": question})
+        ai_response_text = result.get("answer", "I could not find an answer.")
+
+        # Save conversation
+        conversation = Conversation(
+            user_id=user.id,
+            interaction={
+                "question": question, 
+                "answer": ai_response_text,
+                "channel": "instagram"
+            },
+            resolved=False,
+        )
+        db.add(conversation)
+        db.commit()
+        db.refresh(conversation)
+
+        # Send Reply via Instagram
+        success = send_instagram_message(instagram_sender_id, ai_response_text)
+        
+        if success:
+            return {"status": "success", "message": "Instagram reply sent"}
+        else:
+            return {"status": "error", "message": "Failed to send Instagram reply"}
+
+    except Exception as e:
+        print(f"An unexpected error occurred in handle_instagram_message: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+@app.get("/hooks/messenger")
+async def verify_messenger_webhook(request: Request):
+    """Verify Messenger webhook"""
+    hub_mode = request.query_params.get("hub.mode")
+    hub_challenge = request.query_params.get("hub.challenge")
+    hub_verify_token = request.query_params.get("hub.verify_token")
+    
+    challenge = verify_facebook_webhook(hub_mode, hub_challenge, hub_verify_token, "messenger")
+    if challenge:
+        return Response(content=challenge, media_type="text/plain")
+    else:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+
+@app.post("/hooks/messenger")
+async def handle_messenger_message(request: Request, db: Session = Depends(get_db)):
+    """
+    Handles incoming Messenger messages, gets an AI response, and sends a reply.
+    """
+    try:
+        payload = await request.json()
+        
+        print("=== MESSENGER WEBHOOK DEBUG ===")
+        print(f"Received Messenger payload: {payload}")
+        print("=== END MESSENGER DEBUG ===")
+        
+        # Skip if it's a test webhook
+        if payload.get("object") == "page" and not payload.get("entry"):
+            return {"status": "test_webhook", "message": "Test webhook received"}
+        
+        builder = MessengerMessageBuilder(payload)
+        
+        # Handle postback events differently
+        if builder.is_postback():
+            postback_payload = builder.get_postback_payload()
+            question = f"User clicked: {postback_payload}"
+        else:
+            standardized_message = builder.build()
+            question = standardized_message.content
+
+        # Extract Messenger sender ID for replies  
+        messenger_sender_id = builder.get_sender_psid()
+        
+        # Find user - Messenger integration typically requires user registration
+        user = db.query(User).first()  # Use first user for demo
+        
+        if not user:
+            # Send registration message
+            send_messenger_message(
+                messenger_sender_id, 
+                "👋 Welcome! Please register on our platform first to use this service."
+            )
+            return {"status": "user_not_found", "message": "User not registered"}
+
+        # Generate AI Response
+        result = retrieval_chain.invoke({"input": question})
+        ai_response_text = result.get("answer", "I could not find an answer.")
+
+        # Save conversation
+        conversation = Conversation(
+            user_id=user.id,
+            interaction={
+                "question": question, 
+                "answer": ai_response_text,
+                "channel": "messenger"
+            },
+            resolved=False,
+        )
+        db.add(conversation)
+        db.commit()
+        db.refresh(conversation)
+
+        # Send Reply via Messenger
+        success = send_messenger_message(messenger_sender_id, ai_response_text)
+        
+        if success:
+            return {"status": "success", "message": "Messenger reply sent"}
+        else:
+            return {"status": "error", "message": "Failed to send Messenger reply"}
+
+    except Exception as e:
+        print(f"An unexpected error occurred in handle_messenger_message: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+@app.post("/hooks/email-manual")
+async def handle_manual_email(request: Request, db: Session = Depends(get_db)):
+    """
+    Manual email endpoint for testing or direct email processing.
+    Expects JSON with 'from', 'subject', and 'body' fields.
+    """
+    try:
+        payload = await request.json()
+        
+        # Validate required fields
+        required_fields = ['from', 'body']
+        for field in required_fields:
+            if field not in payload:
+                raise HTTPException(status_code=400, detail=f"Missing required field: {field}")
+        
+        return await handle_email_message(payload, db)
+        
+    except Exception as e:
+        print(f"Error in manual email handler: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/admin/test-email")
+async def test_email_functionality(request: Request, db: Session = Depends(get_db)):
+    """Test email functionality - admin only"""
+    try:
+        current_admin = get_current_admin(request, db)
+        
+        # Test sending an email
+        test_subject = "AI Assistant Test Email"
+        test_body = "This is a test email from your AI Assistant. If you receive this, email functionality is working correctly!"
+        
+        success = send_email_reply(
+            to_email=current_admin.email,
+            subject=test_subject,
+            body=test_body
+        )
+        
+        if success:
+            return {"status": "success", "message": f"Test email sent to {current_admin.email}"}
+        else:
+            return {"status": "error", "message": "Failed to send test email"}
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Test email error: {str(e)}")
+
+
+@app.post("/admin/check-email-inbox")
+async def manual_email_check(request: Request, db: Session = Depends(get_db)):
+    """Manually trigger email inbox check - admin only"""
+    try:
+        current_admin = get_current_admin(request, db)
+        
+        # Trigger email check
+        # check_email_inbox()  # Commented out temporarily
+        return {"status": "success", "message": "Email inbox check disabled - using SendGrid webhooks"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Email check error: {str(e)}")
 
 # Include the router from ragpipeline.py
 # app.include_router(rag_router)
@@ -1160,6 +2298,3 @@ def debug_banking_endpoint(
             
     except Exception as e:
         return {"error": str(e), "details": "Failed to test banking endpoint"}
-
-
-
