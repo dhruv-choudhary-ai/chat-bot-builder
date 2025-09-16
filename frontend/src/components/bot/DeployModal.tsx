@@ -21,6 +21,7 @@ interface DeployModalProps {
 }
 
 export const DeployModal = ({ isOpen, onClose, botInfo }: DeployModalProps) => {
+  const [showPreviewChat, setShowPreviewChat] = useState(false);
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [primaryColor, setPrimaryColor] = useState("#3B82F6");
   const [position, setPosition] = useState<"bottom-right" | "bottom-left">("bottom-right");
@@ -324,16 +325,16 @@ export const DeployModal = ({ isOpen, onClose, botInfo }: DeployModalProps) => {
             <Card>
               <CardHeader>
                 <CardTitle>Live Preview</CardTitle>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground mb-1">
                   This is how your chatbot will appear on a real business website
                 </p>
               </CardHeader>
               <CardContent>
-                <div className="relative w-full flex justify-center items-center py-4">
+                <div className="relative w-full flex justify-center items-center py-0">
                   {/* Simulated browser window */}
-                  <div className="relative w-full max-w-[900px] bg-white rounded-2xl shadow-2xl border overflow-hidden flex flex-col" style={{ height: 'min(540px, 60vh)' }}>
+                  <div className="relative w-[600px] h-[350px] bg-white rounded-2xl shadow-2xl border overflow-hidden flex flex-col">
                     {/* Browser bar */}
-                    <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 border-b">
+                    <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 border-b">
                       <span className="w-3 h-3 rounded-full bg-red-400 inline-block"></span>
                       <span className="w-3 h-3 rounded-full bg-yellow-300 inline-block"></span>
                       <span className="w-3 h-3 rounded-full bg-green-400 inline-block"></span>
@@ -342,49 +343,66 @@ export const DeployModal = ({ isOpen, onClose, botInfo }: DeployModalProps) => {
                       </div>
                     </div>
                     {/* Business-styled header */}
-                    <div className="flex items-center justify-between px-10 py-5 bg-gradient-to-r from-blue-900 to-blue-600">
+                    <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-900 to-blue-600">
                       <div className="flex items-center gap-3">
-                        <img src='https://dummyimage.com/48x48/1e293b/fff&text=B' alt="Logo" className="rounded-full w-12 h-12 border-2 border-white shadow" />
+                        <img src='https://dummyimage.com/32x32/1e293b/fff&text=B' alt="Logo" className="rounded-full w-8 h-8 border-2 border-white shadow" />
                         <div>
-                          <div className="text-white text-lg font-bold">Business Corp</div>
-                          <div className="text-blue-200 text-xs">{websiteUrl || "your-website.com"}</div>
+                          <div className="text-white text-base font-bold leading-tight">Business Corp</div>
+                          <div className="text-blue-200 text-xs leading-tight">{websiteUrl || "your-website.com"}</div>
                         </div>
                       </div>
-                      <div className="flex gap-6">
-                        <span className="text-white/80 text-base hover:underline cursor-pointer">Home</span>
-                        <span className="text-white/80 text-base hover:underline cursor-pointer">About</span>
-                        <span className="text-white/80 text-base hover:underline cursor-pointer">Services</span>
-                        <span className="text-white/80 text-base hover:underline cursor-pointer">Contact</span>
+                      <div className="flex gap-3">
+                        <span className="text-white/80 text-xs hover:underline cursor-pointer">Home</span>
+                        <span className="text-white/80 text-xs hover:underline cursor-pointer">About</span>
+                        <span className="text-white/80 text-xs hover:underline cursor-pointer">Services</span>
+                        <span className="text-white/80 text-xs hover:underline cursor-pointer">Contact</span>
                       </div>
                     </div>
                     {/* Hero section */}
-                    <div className="flex-1 flex flex-col md:flex-row items-center justify-between px-10 py-8 bg-gradient-to-br from-blue-50 to-indigo-100 relative">
-                      <div className="max-w-md">
-                        <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-3">Welcome to Business Corp</h2>
-                        <p className="text-gray-600 mb-6">We provide innovative solutions to help your business grow. Chat with our AI assistant for instant support and information.</p>
-                        <button className="bg-blue-700 text-white px-6 py-3 rounded shadow hover:bg-blue-800 transition">Learn More</button>
+                    <div className="flex-1 flex flex-row items-center justify-between px-4 py-3 bg-gradient-to-br from-blue-50 to-indigo-100 relative">
+                      <div className="max-w-[260px]">
+                        <h2 className="text-lg font-bold text-gray-800 mb-1 leading-tight">Welcome to Business Corp</h2>
+                        <p className="text-gray-600 mb-2 text-xs leading-tight">We provide innovative solutions to help your business grow. Chat with our AI assistant for instant support and information.</p>
+                        <button className="bg-blue-700 text-white px-3 py-1 rounded shadow hover:bg-blue-800 transition text-xs">Learn More</button>
                       </div>
-                      <img src="https://dummyimage.com/320x220/3b82f6/fff&text=Business+Image" alt="Business" className="rounded-lg shadow-lg hidden md:block" />
+                      <img src="https://dummyimage.com/120x80/3b82f6/fff&text=Business+Image" alt="Business" className="rounded-lg shadow-lg" />
                     </div>
                     {/* Overlay chatbot icon in correct position */}
-                    <div className="pointer-events-none">
-                      <div className="w-full h-full relative">
-                        <div
-                          className={`absolute ${position === 'bottom-right' ? 'right-10 bottom-10' : 'left-10 bottom-10'}`}
-                          style={{ pointerEvents: 'auto' }}
-                        >
-                          {/* Chatbot icon as it would appear on a real site */}
-                          <button
-                            className="rounded-full w-16 h-16 shadow-lg flex items-center justify-center hover:scale-105 transition-transform"
-                            style={{ backgroundColor: primaryColor, boxShadow: '0 4px 16px rgba(0,0,0,0.18)' }}
-                            tabIndex={-1}
-                            aria-label="Open chatbot"
-                          >
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                              <path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"></path>
-                            </svg>
-                          </button>
-                        </div>
+                    <div className="w-full h-full relative">
+                      <div
+                        className={`absolute ${position === 'bottom-right' ? 'right-4 bottom-16' : 'left-4 bottom-16'}`}
+                        style={{ pointerEvents: 'auto' }}
+                      >
+                        {/* ChatbotPreview icon-only for preview */}
+                        {!showPreviewChat ? (
+                          <ChatbotPreview
+                            botName={botInfo.name}
+                            botType={botInfo.bot_type}
+                            primaryColor={primaryColor}
+                            position={position}
+                            iconOnly={true}
+                            size={48}
+                            onClick={() => setShowPreviewChat(true)}
+                          />
+                        ) : (
+                          <div className="z-50">
+                            <ChatbotPreview
+                              botName={botInfo.name}
+                              botType={botInfo.bot_type}
+                              primaryColor={primaryColor}
+                              position={position}
+                              iconOnly={false}
+                              // Optionally add a close button overlay
+                            />
+                            <button
+                              className="absolute -top-3 -right-3 bg-white border border-gray-300 rounded-full w-6 h-6 flex items-center justify-center shadow z-50"
+                              onClick={() => setShowPreviewChat(false)}
+                              aria-label="Close chatbot preview"
+                            >
+                              <span className="text-gray-700 text-lg">&times;</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -452,7 +470,7 @@ export const DeployModal = ({ isOpen, onClose, botInfo }: DeployModalProps) => {
                       id="greeting"
                       value={greeting}
                       onChange={(e) => setGreeting(e.target.value)}
-                      className="w-full mt-1 p-2 border rounded-md resize-none h-20"
+                      className="w-full mt-1 p-2 border rounded-md resize-none h-20 bg-[#121212] text-[#c5c5c5]"
                       placeholder="Enter the initial greeting message..."
                     />
                   </div>

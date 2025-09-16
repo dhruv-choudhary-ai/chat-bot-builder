@@ -37,14 +37,17 @@ export const Builder: React.FC<BuilderProps> = ({ botId }) => {
     setUploading(true);
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("bot_id", botId);
+    formData.append("bot_id", String(Number(botId)));
     try {
       const res = await fetch("/admin/upload-document", {
         method: "POST",
         headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` },
         body: formData,
       });
-      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.success === false) {
+        throw new Error(data.error || data.detail || "Upload failed");
+      }
       toast({ title: "Upload successful", description: file.name, variant: "default" });
     } catch (err) {
       toast({ title: "Upload failed", description: (err as Error).message, variant: "destructive" });

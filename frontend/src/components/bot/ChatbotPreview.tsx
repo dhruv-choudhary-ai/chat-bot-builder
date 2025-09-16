@@ -9,6 +9,9 @@ interface ChatbotPreviewProps {
   botType: string;
   primaryColor?: string;
   position?: "bottom-right" | "bottom-left";
+  iconOnly?: boolean;
+  size?: number;
+  onClick?: () => void;
 }
 
 interface Message {
@@ -22,7 +25,10 @@ export const ChatbotPreview = ({
   botName, 
   botType, 
   primaryColor = "#3B82F6",
-  position = "bottom-right"
+  position = "bottom-right",
+  iconOnly = false,
+  size = 56,
+  onClick
 }: ChatbotPreviewProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -79,6 +85,20 @@ export const ChatbotPreview = ({
   const positionClasses = position === "bottom-right" 
     ? "bottom-4 right-4" 
     : "bottom-4 left-4";
+
+  if (iconOnly) {
+    return (
+      <button
+        className="rounded-full shadow-lg flex items-center justify-center hover:scale-105 transition-transform cursor-pointer"
+        style={{ backgroundColor: primaryColor, width: size, height: size, boxShadow: '0 4px 16px rgba(0,0,0,0.18)' }}
+        tabIndex={0}
+        aria-label="Open chatbot"
+        onClick={onClick}
+      >
+        <MessageCircle style={{ width: size * 0.6, height: size * 0.6 }} className="text-white" />
+      </button>
+    );
+  }
 
   return (
     <div className={`fixed ${positionClasses} z-50`}>
