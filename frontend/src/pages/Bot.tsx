@@ -3,11 +3,11 @@ import { useNavigate, useParams } from "react-router-dom";
 import { 
   BarChart3, 
   MessageSquare, 
-  Megaphone, 
+  // Megaphone, 
   Users, 
   TrendingUp, 
   Wrench, 
-  BookOpen, 
+  // BookOpen, 
   Settings,
   Menu,
   HelpCircle
@@ -16,11 +16,11 @@ import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/layout/Navbar";
 import { Overview } from "@/components/bot/Overview";
 import { Conversations } from "@/components/bot/Conversations";
-import { Marketing } from "@/components/bot/Marketing";
+// import { Marketing } from "@/components/bot/Marketing";
 import { UsersComponent } from "@/components/bot/UsersComponent";
 import { Analytics } from "@/components/bot/Analytics";
 import { Builder } from "@/components/bot/Builder";
-import { Train } from "@/components/bot/Train";
+// import { Train } from "@/components/bot/Train";
 import { Configure } from "@/components/bot/Configure";
 import { Help } from "@/components/bot/Help";
 import { BotManagement } from "@/components/bot/BotManagement";
@@ -139,11 +139,11 @@ const Bot = () => {
   const navItems = [
     { id: "overview", label: "Overview", icon: BarChart3 },
     { id: "conversations", label: "Conversations", icon: MessageSquare },
-    { id: "marketing", label: "Marketing Campaigns", icon: Megaphone },
+    // { id: "marketing", label: "Marketing Campaigns", icon: Megaphone },
     { id: "users", label: "Users", icon: Users },
     { id: "analytics", label: "Analytics", icon: TrendingUp },
     { id: "builder", label: "Builder", icon: Wrench },
-    { id: "train", label: "Train", icon: BookOpen },
+    // { id: "train", label: "Train", icon: BookOpen },
     { id: "configure", label: "Configure", icon: Settings },
   ];
 
@@ -252,12 +252,11 @@ const Bot = () => {
               </div>
             </div>
           )}
-          {activeTab === "conversations" && <Conversations />}
-          {activeTab === "marketing" && <Marketing />}
-          {activeTab === "users" && <UsersComponent />}
+          {activeTab === "conversations" && <Conversations botId={id} />}
+          {/* {activeTab === "marketing" && <Marketing />} */}
+          {activeTab === "users" && <UsersComponent botId={id} />}
           {activeTab === "analytics" && <Analytics />}
-          {activeTab === "builder" && <Builder />}
-          {activeTab === "train" && <Train />}
+          {activeTab === "builder" && <Builder botId={id} />}
           {activeTab === "configure" && <Configure />}
           {activeTab === "help" && <Help />}
             </div>

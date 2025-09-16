@@ -107,6 +107,100 @@ def get_user_bots(
     # If bots are user-specific, this query needs to be adjusted.
     return db.query(Bot).all() # Or filter by user_id if bots are assigned to users
 
+@app.get("/users/conversations", response_model=List[ConversationResponse])
+def get_user_conversations(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Returns a list of conversations for the current user across all bots.
+    Groups user questions with bot answers.
+    """
+    conversations = db.query(Conversation).filter(Conversation.user_id == current_user.id).order_by(Conversation.created_at.desc()).all()
+    
+    # Group conversations by pairing user questions with bot answers
+    conversation_responses = []
+    grouped_conversations = {}
+    
+    for conv in conversations:
+        interaction_data = conv.interaction if isinstance(conv.interaction, dict) else {}
+        source = interaction_data.get("source", "unknown")
+        content = interaction_data.get("content", "")
+        channel = interaction_data.get("channel", "web")
+        
+        # Use bot_id and rough timestamp grouping to match questions with answers
+        # Group by bot_id and time window (within 1 minute)
+        time_key = conv.created_at.replace(second=0, microsecond=0)  # Round to minute
+        group_key = f"{conv.bot_id}_{time_key}"
+        
+        if group_key not in grouped_conversations:
+            grouped_conversations[group_key] = {
+                "id": conv.id,
+                "user_id": conv.user_id,
+                "bot_id": conv.bot_id,
+                "question": "",
+                "answer": "",
+                "channel": channel,
+                "resolved": conv.resolved,
+                "created_at": conv.created_at,
+                "updated_at": conv.updated_at
+            }
+        
+        if source == "user":
+            grouped_conversations[group_key]["question"] = content
+        elif source == "bot":
+            grouped_conversations[group_key]["answer"] = content
+    
+    # Convert grouped conversations to response format
+    for group in grouped_conversations.values():
+        if group["question"] or group["answer"]:  # Only include if there's actual content
+            conversation_responses.append(ConversationResponse(
+                id=group["id"],
+                user_id=group["user_id"],
+                interaction={
+                    "question": group["question"],
+                    "answer": group["answer"],
+                    "channel": group["channel"]
+                },
+                resolved=group["resolved"],
+                created_at=group["created_at"],
+                updated_at=group["updated_at"]
+            ))
+    
+    return conversation_responses
+    
+    # Process to group questions with their answers
+    grouped_conversations = {}
+    for conv in conversations:
+        # Use a simple grouping strategy - group by timestamp proximity
+        time_key = conv.created_at.strftime("%Y-%m-%d %H:%M")
+        if time_key not in grouped_conversations:
+            grouped_conversations[time_key] = {"question": "", "answer": "", "conv_obj": conv}
+        
+        if conv.source == "user":
+            grouped_conversations[time_key]["question"] = conv.content
+        else:
+            grouped_conversations[time_key]["answer"] = conv.content
+    
+    # Convert grouped conversations back to response format
+    final_responses = []
+    for time_key, data in grouped_conversations.items():
+        if data["question"]:  # Only include if there's a question
+            final_responses.append(ConversationResponse(
+                id=data["conv_obj"].id,
+                user_id=data["conv_obj"].user_id,
+                interaction={
+                    "question": data["question"],
+                    "answer": data["answer"],
+                    "channel": data["conv_obj"].channel
+                },
+                resolved=data["conv_obj"].resolved,
+                created_at=data["conv_obj"].created_at,
+                updated_at=data["conv_obj"].updated_at
+            ))
+    
+    return final_responses
+
 
 # ---------- Serve UI ----------
 @app.get("/", response_class=HTMLResponse)
@@ -470,8 +564,125 @@ def generate_embed_script(
         apiUrl: "http://localhost:8000"
     }};
     
+    // Create typing indicator
+    const createTypingIndicator = () => {{
+        return `
+            <div id="lifebot-typing" style="
+                display: flex;
+                justify-content: flex-start;
+                margin: 8px 0;
+                clear: both;
+            ">
+                <div style="
+                    background: white;
+                    padding: 16px;
+                    border-radius: 18px;
+                    max-width: 80%;
+                    width: fit-content;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                    animation: slideInLeft 0.3s ease-out;
+                ">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="display: flex; gap: 4px; align-items: center;">
+                            <div style="
+                                width: 8px;
+                                height: 8px;
+                                background-color: #cbd5e0;
+                                border-radius: 50%;
+                                animation: typing 1.4s infinite;
+                            "></div>
+                            <div style="
+                                width: 8px;
+                                height: 8px;
+                                background-color: #cbd5e0;
+                                border-radius: 50%;
+                                animation: typing 1.4s infinite 0.2s;
+                            "></div>
+                            <div style="
+                                width: 8px;
+                                height: 8px;
+                                background-color: #cbd5e0;
+                                border-radius: 50%;
+                                animation: typing 1.4s infinite 0.4s;
+                            "></div>
+                        </div>
+                        <span style="color: #718096; font-size: 12px; margin-left: 4px;">
+                            {bot.name} is typing...
+                        </span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }};
+    
+    // Add CSS animations
+    const addAnimations = () => {{
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes typing {{
+                0%, 60%, 100% {{
+                    transform: translateY(0);
+                    opacity: 0.4;
+                }}
+                30% {{
+                    transform: translateY(-10px);
+                    opacity: 1;
+                }}
+            }}
+            
+            @keyframes slideInLeft {{
+                from {{
+                    opacity: 0;
+                    transform: translateX(-20px);
+                }}
+                to {{
+                    opacity: 1;
+                    transform: translateX(0);
+                }}
+            }}
+            
+            @keyframes slideInRight {{
+                from {{
+                    opacity: 0;
+                    transform: translateX(20px);
+                }}
+                to {{
+                    opacity: 1;
+                    transform: translateX(0);
+                }}
+            }}
+            
+            @keyframes pulse {{
+                0% {{
+                    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+                }}
+                70% {{
+                    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+                }}
+                100% {{
+                    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+                }}
+            }}
+            
+            #lifebot-button:hover {{
+                animation: pulse 1.5s infinite;
+            }}
+            
+            .lifebot-message-user {{
+                animation: slideInRight 0.3s ease-out;
+            }}
+            
+            .lifebot-message-bot {{
+                animation: slideInLeft 0.3s ease-out;
+            }}
+        `;
+        document.head.appendChild(style);
+    }};
+    
     // Create chatbot container
     const createChatbot = () => {{
+        addAnimations();
+        
         const chatbotContainer = document.createElement('div');
         chatbotContainer.id = 'lifebot-chatbot';
         chatbotContainer.innerHTML = `
@@ -479,63 +690,86 @@ def generate_embed_script(
                 position: fixed;
                 {position_css}
                 z-index: 9999;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
             ">
                 <div id="lifebot-button" style="
-                    width: 56px;
-                    height: 56px;
-                    background-color: {primary_color};
+                    width: 64px;
+                    height: 64px;
+                    background: linear-gradient(135deg, {primary_color}, #1e40af);
                     border-radius: 50%;
                     cursor: pointer;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                    transition: transform 0.2s;
-                " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08);
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    border: 3px solid rgba(255,255,255,0.2);
+                    backdrop-filter: blur(10px);
+                " onmouseover="this.style.transform='scale(1.1) translateY(-2px)'" onmouseout="this.style.transform='scale(1) translateY(0)'">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
                         <path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"></path>
                     </svg>
                 </div>
                 <div id="lifebot-chat" style="
                     display: none;
-                    width: 320px;
-                    height: 400px;
+                    width: 360px;
+                    height: 500px;
                     background: white;
-                    border-radius: 12px;
-                    box-shadow: 0 8px 28px rgba(0,0,0,0.12);
+                    border-radius: 20px;
+                    box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 8px 32px rgba(0,0,0,0.1);
                     position: absolute;
-                    bottom: 70px;
+                    bottom: 80px;
                     {'right: 0;' if position == 'bottom-right' else 'left: 0;'}
                     overflow: hidden;
+                    border: 1px solid rgba(255,255,255,0.2);
+                    backdrop-filter: blur(20px);
                 ">
                     <div style="
-                        background: {primary_color};
+                        background: linear-gradient(135deg, {primary_color}, #1e40af);
                         color: white;
-                        padding: 16px;
+                        padding: 20px;
                         display: flex;
                         align-items: center;
                         justify-content: space-between;
+                        border-bottom: 1px solid rgba(255,255,255,0.1);
                     ">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <div style="width: 32px; height: 32px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="
+                                width: 40px; 
+                                height: 40px; 
+                                background: rgba(255,255,255,0.15); 
+                                border-radius: 50%; 
+                                display: flex; 
+                                align-items: center; 
+                                justify-content: center;
+                                border: 2px solid rgba(255,255,255,0.2);
+                            ">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
                                     <path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"></path>
                                 </svg>
                             </div>
                             <div>
-                                <div style="font-weight: 500; font-size: 14px;">{bot.name}</div>
-                                <div style="font-size: 12px; opacity: 0.8;">Online</div>
+                                <div style="font-weight: 600; font-size: 16px; letter-spacing: -0.5px;">{bot.name}</div>
+                                <div style="font-size: 13px; opacity: 0.9; display: flex; align-items: center; gap: 6px;">
+                                    <div style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; animation: pulse 2s infinite;"></div>
+                                    Online
+                                </div>
                             </div>
                         </div>
                         <button id="lifebot-close" style="
-                            background: none;
+                            background: rgba(255,255,255,0.1);
                             border: none;
                             color: white;
                             cursor: pointer;
-                            padding: 4px;
-                            border-radius: 4px;
-                        " onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='none'">
+                            padding: 8px;
+                            border-radius: 8px;
+                            transition: all 0.2s;
+                            width: 32px;
+                            height: 32px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        " onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="18" y1="6" x2="6" y2="18"></line>
                                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -543,49 +777,66 @@ def generate_embed_script(
                         </button>
                     </div>
                     <div id="lifebot-messages" style="
-                        height: 280px;
+                        height: 360px;
                         overflow-y: auto;
-                        padding: 16px;
-                        background: #f8f9fa;
+                        padding: 20px;
+                        background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
+                        scroll-behavior: smooth;
                     ">
-                        <div style="
-                            background: white;
-                            padding: 12px;
-                            border-radius: 8px;
-                            margin-bottom: 12px;
-                            max-width: 80%;
-                            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                        <div class="lifebot-message-bot" style="
+                            display: flex;
+                            justify-content: flex-start;
+                            margin: 8px 0;
+                            clear: both;
                         ">
-                            {greeting}
+                            <div style="
+                                background: white;
+                                padding: 16px;
+                                border-radius: 18px;
+                                max-width: 85%;
+                                width: fit-content;
+                                box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                                font-size: 14px;
+                                line-height: 1.5;
+                                border: 1px solid rgba(0,0,0,0.05);
+                            ">
+                                {greeting}
+                            </div>
                         </div>
                     </div>
                     <div style="
-                        padding: 16px;
-                        border-top: 1px solid #e9ecef;
+                        padding: 20px;
+                        border-top: 1px solid #e2e8f0;
+                        background: white;
                         display: flex;
-                        gap: 8px;
+                        gap: 12px;
+                        align-items: flex-end;
                     ">
                         <input id="lifebot-input" type="text" placeholder="Type your message..." style="
                             flex: 1;
-                            padding: 8px 12px;
-                            border: 1px solid #ddd;
-                            border-radius: 20px;
+                            padding: 12px 16px;
+                            border: 2px solid #e2e8f0;
+                            border-radius: 24px;
                             outline: none;
                             font-size: 14px;
-                        ">
+                            transition: all 0.2s;
+                            background: #f8fafc;
+                        " onfocus="this.style.border='2px solid {primary_color}'; this.style.background='white';" onblur="this.style.border='2px solid #e2e8f0'; this.style.background='#f8fafc';">
                         <button id="lifebot-send" style="
-                            background: {primary_color};
+                            background: linear-gradient(135deg, {primary_color}, #1e40af);
                             color: white;
                             border: none;
                             border-radius: 50%;
-                            width: 36px;
-                            height: 36px;
+                            width: 44px;
+                            height: 44px;
                             cursor: pointer;
                             display: flex;
                             align-items: center;
                             justify-content: center;
-                        ">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            transition: all 0.2s;
+                            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+                        " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="22" y1="2" x2="11" y2="13"></line>
                                 <polygon points="22,2 15,22 11,13 2,9"></polygon>
                             </svg>
@@ -606,33 +857,71 @@ def generate_embed_script(
 
         button.addEventListener('click', () => {{
             chat.style.display = chat.style.display === 'none' ? 'block' : 'none';
+            if (chat.style.display === 'block') {{
+                input.focus();
+            }}
         }});
 
         closeBtn.addEventListener('click', () => {{
             chat.style.display = 'none';
         }});
 
+        // Show typing indicator
+        const showTypingIndicator = () => {{
+            const typingHtml = createTypingIndicator();
+            messages.insertAdjacentHTML('beforeend', typingHtml);
+            messages.scrollTop = messages.scrollHeight;
+        }};
+
+        // Hide typing indicator
+        const hideTypingIndicator = () => {{
+            const typingElement = document.getElementById('lifebot-typing');
+            if (typingElement) {{
+                typingElement.remove();
+            }}
+        }};
+
         const sendMessage = () => {{
             const message = input.value.trim();
             if (!message) return;
 
+            // Disable input while processing
+            input.disabled = true;
+            sendBtn.disabled = true;
+            sendBtn.style.opacity = '0.6';
+
             // Add user message
             const userMsg = document.createElement('div');
+            userMsg.className = 'lifebot-message-user';
             userMsg.style.cssText = `
-                background: {primary_color};
-                color: white;
-                padding: 8px 12px;
-                border-radius: 8px;
+                display: flex;
+                justify-content: flex-end;
                 margin: 8px 0;
-                max-width: 80%;
-                margin-left: auto;
-                text-align: right;
+                clear: both;
             `;
-            userMsg.textContent = message;
+            
+            const userMsgContent = document.createElement('div');
+            userMsgContent.style.cssText = `
+                background: linear-gradient(135deg, {primary_color}, #1e40af);
+                color: white;
+                padding: 12px 16px;
+                border-radius: 18px;
+                max-width: 80%;
+                width: fit-content;
+                font-size: 14px;
+                line-height: 1.4;
+                box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+                word-wrap: break-word;
+            `;
+            userMsgContent.textContent = message;
+            userMsg.appendChild(userMsgContent);
             messages.appendChild(userMsg);
 
             input.value = '';
             messages.scrollTop = messages.scrollHeight;
+
+            // Show typing indicator
+            showTypingIndicator();
 
             // Send message to LifeBot API
             fetch('http://localhost:8000/chat/{bot.id}', {{
@@ -644,39 +933,89 @@ def generate_embed_script(
             }})
             .then(response => response.json())
             .then(data => {{
+                // Hide typing indicator
+                hideTypingIndicator();
+                
+                // Add bot response
                 const botMsg = document.createElement('div');
+                botMsg.className = 'lifebot-message-bot';
                 botMsg.style.cssText = `
-                    background: white;
-                    padding: 12px;
-                    border-radius: 8px;
+                    display: flex;
+                    justify-content: flex-start;
                     margin: 8px 0;
-                    max-width: 80%;
-                    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                    clear: both;
                 `;
-                botMsg.textContent = data.response || "Thanks for your message! I'm processing your request.";
+                
+                const botMsgContent = document.createElement('div');
+                botMsgContent.style.cssText = `
+                    background: white;
+                    padding: 16px;
+                    border-radius: 18px;
+                    max-width: 85%;
+                    width: fit-content;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                    font-size: 14px;
+                    line-height: 1.5;
+                    border: 1px solid rgba(0,0,0,0.05);
+                    word-wrap: break-word;
+                `;
+                botMsgContent.textContent = data.response || "Thanks for your message! I'm processing your request.";
+                botMsg.appendChild(botMsgContent);
                 messages.appendChild(botMsg);
                 messages.scrollTop = messages.scrollHeight;
+                
+                // Re-enable input
+                input.disabled = false;
+                sendBtn.disabled = false;
+                sendBtn.style.opacity = '1';
+                input.focus();
             }})
             .catch(error => {{
                 console.error('Error:', error);
+                
+                // Hide typing indicator
+                hideTypingIndicator();
+                
                 const botMsg = document.createElement('div');
+                botMsg.className = 'lifebot-message-bot';
                 botMsg.style.cssText = `
-                    background: white;
-                    padding: 12px;
-                    border-radius: 8px;
+                    display: flex;
+                    justify-content: flex-start;
                     margin: 8px 0;
-                    max-width: 80%;
-                    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                    clear: both;
                 `;
-                botMsg.textContent = "Sorry, I'm having trouble connecting. Please try again later.";
+                
+                const botMsgContent = document.createElement('div');
+                botMsgContent.style.cssText = `
+                    background: #fee2e2;
+                    color: #dc2626;
+                    padding: 16px;
+                    border-radius: 18px;
+                    max-width: 85%;
+                    width: fit-content;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                    font-size: 14px;
+                    line-height: 1.5;
+                    border: 1px solid #fecaca;
+                `;
+                botMsgContent.textContent = "Sorry, I'm having trouble connecting. Please try again later.";
+                botMsg.appendChild(botMsgContent);
                 messages.appendChild(botMsg);
                 messages.scrollTop = messages.scrollHeight;
+                
+                // Re-enable input
+                input.disabled = false;
+                sendBtn.disabled = false;
+                sendBtn.style.opacity = '1';
+                input.focus();
             }});
         }};
 
         sendBtn.addEventListener('click', sendMessage);
         input.addEventListener('keypress', (e) => {{
-            if (e.key === 'Enter') sendMessage();
+            if (e.key === 'Enter' && !input.disabled) {{
+                sendMessage();
+            }}
         }});
     }};
 
@@ -712,38 +1051,99 @@ def chat_with_bot(
     if not bot:
         raise HTTPException(status_code=404, detail="Bot not found")
     
-    # For now, return a simple response based on bot type
-    # In a production system, this would integrate with your AI/NLP pipeline
-    bot_responses = {
-        "Retail Bot": "Thanks for your message! I'm here to help you with your shopping needs. What product are you looking for?",
-        "Banking Bot": "Hello! I'm your banking assistant. How can I help you with your banking needs today?",
-        "Insurance Bot": "Hi there! I'm here to assist you with insurance questions. What can I help you with?",
-        "Hotel Booking Bot": "Welcome! I can help you find and book the perfect hotel. Where are you planning to stay?",
-        "Telecom bot": "Hello! I'm your telecom assistant. How can I help you with your phone or internet services?",
-        "Course Enrollment bot": "Hi! I'm here to help you find and enroll in courses. What subject are you interested in?",
-        "Career Counselling Bot": "Hello! I'm your career counselor. How can I help you with your career development?",
-        "Lead Capturing Bot": "Thanks for reaching out! I'd love to help you learn more about our services. What are you interested in?",
-        "Real estate bot": "Hello! I'm here to help you with real estate matters. Are you looking to buy, sell, or rent?"
-    }
-    
-    # Get response based on bot type
-    response_text = bot_responses.get(
-        bot.bot_type, 
-        f"Hello! I'm {bot.name}. Thanks for your message: '{message.message}'. How can I assist you further?"
-    )
-    
-    # TODO: In production, integrate with actual AI/chatbot logic here
-    # This could involve:
-    # 1. Loading the bot's knowledge base
-    # 2. Processing the message through NLP
-    # 3. Generating appropriate responses
-    # 4. Saving conversation history
-    
-    return {
-        "response": response_text,
-        "bot_name": bot.name,
-        "bot_type": bot.bot_type
-    }
+    try:
+        # Route to the appropriate bot based on bot type
+        if bot.bot_type == "Lead Capturing Bot":
+            from bots.lead_capturing_bot import lead_capturing_bot
+            from bots.base_bot import QueryRequest
+            request = QueryRequest(question=message.message)
+            # For embedded bots, we'll simulate a simple user session without authentication
+            response = lead_capturing_bot.retrieval_chain.invoke({"input": message.message})
+            return {
+                "response": response["answer"],
+                "bot_name": bot.name,
+                "bot_type": bot.bot_type
+            }
+        elif bot.bot_type == "Banking Bot":
+            from bots.banking_bot import banking_bot
+            response = banking_bot.retrieval_chain.invoke({"input": message.message})
+            return {
+                "response": response["answer"],
+                "bot_name": bot.name,
+                "bot_type": bot.bot_type
+            }
+        elif bot.bot_type == "Retail Bot":
+            from bots.retail_bot import retail_bot
+            response = retail_bot.retrieval_chain.invoke({"input": message.message})
+            return {
+                "response": response["answer"],
+                "bot_name": bot.name,
+                "bot_type": bot.bot_type
+            }
+        elif bot.bot_type == "Insurance Bot":
+            from bots.insurance_bot import insurance_bot
+            response = insurance_bot.retrieval_chain.invoke({"input": message.message})
+            return {
+                "response": response["answer"],
+                "bot_name": bot.name,
+                "bot_type": bot.bot_type
+            }
+        elif bot.bot_type == "Hotel Booking Bot":
+            from bots.hotel_booking_bot import hotel_booking_bot
+            response = hotel_booking_bot.retrieval_chain.invoke({"input": message.message})
+            return {
+                "response": response["answer"],
+                "bot_name": bot.name,
+                "bot_type": bot.bot_type
+            }
+        elif bot.bot_type == "Telecom bot":
+            from bots.telecom_bot import telecom_bot
+            response = telecom_bot.retrieval_chain.invoke({"input": message.message})
+            return {
+                "response": response["answer"],
+                "bot_name": bot.name,
+                "bot_type": bot.bot_type
+            }
+        elif bot.bot_type == "Course Enrollment bot":
+            from bots.course_enrollment_bot import course_enrollment_bot
+            response = course_enrollment_bot.retrieval_chain.invoke({"input": message.message})
+            return {
+                "response": response["answer"],
+                "bot_name": bot.name,
+                "bot_type": bot.bot_type
+            }
+        elif bot.bot_type == "Career Counselling Bot":
+            from bots.career_counselling_bot import career_counselling_bot
+            response = career_counselling_bot.retrieval_chain.invoke({"input": message.message})
+            return {
+                "response": response["answer"],
+                "bot_name": bot.name,
+                "bot_type": bot.bot_type
+            }
+        elif bot.bot_type == "Real estate bot":
+            from bots.real_estate_bot import real_estate_bot
+            response = real_estate_bot.retrieval_chain.invoke({"input": message.message})
+            return {
+                "response": response["answer"],
+                "bot_name": bot.name,
+                "bot_type": bot.bot_type
+            }
+        else:
+            # Fallback for unknown bot types
+            return {
+                "response": f"Hello! I'm {bot.name}. Thanks for your message: '{message.message}'. How can I assist you further?",
+                "bot_name": bot.name,
+                "bot_type": bot.bot_type
+            }
+    except Exception as e:
+        # Fallback if there's an error with the AI processing
+        print(f"Error processing message with AI: {e}")
+        return {
+            "response": f"Hello! I'm {bot.name}. I received your message about '{message.message}'. Let me help you with that!",
+            "bot_name": bot.name,
+            "bot_type": bot.bot_type,
+            "error": "AI processing temporarily unavailable"
+        }
 
 
 @app.get("/admin/bots/{bot_id}/inbox/dates", response_model=List[date])
@@ -791,6 +1191,91 @@ def get_bot_user_conversations_by_channel(bot_id: int, channel_name: str, user_i
         .all()
     )
     return conversations
+
+
+@app.get("/admin/bots/{bot_id}/conversations", response_model=List[ConversationResponse])
+def get_bot_all_conversations(
+    bot_id: int,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin),
+):
+    """
+    Get all conversations for a specific bot with grouped question/answer pairs.
+    Returns conversations with user details for admin dashboard.
+    """
+    conversations = db.query(Conversation).filter(Conversation.bot_id == bot_id).order_by(Conversation.created_at.desc()).all()
+    
+    # Group conversations by pairing user questions with bot answers
+    conversation_responses = []
+    grouped_conversations = {}
+    
+    for conv in conversations:
+        interaction_data = conv.interaction if isinstance(conv.interaction, dict) else {}
+        source = interaction_data.get("source", "unknown")
+        content = interaction_data.get("content", "")
+        channel = interaction_data.get("channel", "web")
+        
+        # Use user_id and rough timestamp grouping to match questions with answers
+        time_key = conv.created_at.replace(second=0, microsecond=0)  # Round to minute
+        group_key = f"{conv.user_id}_{time_key}"
+        
+        if group_key not in grouped_conversations:
+            grouped_conversations[group_key] = {
+                "id": conv.id,
+                "user_id": conv.user_id,
+                "bot_id": conv.bot_id,
+                "question": "",
+                "answer": "",
+                "channel": channel,
+                "resolved": conv.resolved,
+                "created_at": conv.created_at,
+                "updated_at": conv.updated_at
+            }
+        
+        if source == "user":
+            grouped_conversations[group_key]["question"] = content
+        elif source == "bot":
+            grouped_conversations[group_key]["answer"] = content
+    
+    # Convert grouped conversations to response format
+    for group in grouped_conversations.values():
+        if group["question"] or group["answer"]:  # Only include if there's actual content
+            conversation_responses.append(ConversationResponse(
+                id=group["id"],
+                user_id=group["user_id"],
+                interaction={
+                    "question": group["question"],
+                    "answer": group["answer"],
+                    "channel": group["channel"]
+                },
+                resolved=group["resolved"],
+                created_at=group["created_at"],
+                updated_at=group["updated_at"]
+            ))
+    
+    return conversation_responses
+
+
+@app.get("/admin/bots/{bot_id}/users/{user_id}", response_model=UserResponse)
+def get_bot_user_details(
+    bot_id: int,
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin),
+):
+    """
+    Get user details for admin dashboard.
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return UserResponse(
+        id=user.id,
+        email=user.email,
+        phone_number=user.phone_number,
+        name=user.name
+    )
 
 
 # -------------------------
@@ -2063,16 +2548,30 @@ app.include_router(lead_capturing_router, prefix="/lead-capturing", tags=["Lead 
 app.include_router(course_enrollment_router, prefix="/course-enrollment", tags=["Course Enrollment Bot"])
 
 
+
+from fastapi import Form
+
 @app.post("/admin/upload-document")
-async def upload_document(file: UploadFile = File(...)):
-    upload_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "backend", "uploaded_docs")
+async def upload_document(
+    file: UploadFile = File(...),
+    bot_id: int = Form(...),
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin),
+):
+    # Get bot name for folder
+    bot = db.query(Bot).filter(Bot.id == bot_id).first()
+    if not bot:
+        return {"success": False, "error": "Bot not found"}
+    folder_name = f"{bot.name.replace(' ', '_').lower()}_knowledge_base"
+    upload_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "backend", "uploaded_docs", folder_name)
+    os.makedirs(upload_dir, exist_ok=True)
     file_path = os.path.join(upload_dir, file.filename)
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
     # Trigger knowledgebase update
     update_knowledge_base()
-    return {"success": True, "filename": file.filename}
+    return {"success": True, "filename": file.filename, "folder": folder_name}
 
 @app.get("/admin/get-documents")
 async def get_documents():
@@ -2088,10 +2587,13 @@ def get_bot_knowledge_base(
 ):
     """
     Returns a list of knowledge base documents for a specific bot.
-    For now, it returns all documents in backend/uploaded_docs.
-    In a real application, this would be filtered by bot_id.
+    Now returns only documents in the bot's knowledge base folder.
     """
-    upload_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "backend", "uploaded_docs")
+    bot = db.query(Bot).filter(Bot.id == bot_id).first()
+    if not bot:
+        return []
+    folder_name = f"{bot.name.replace(' ', '_').lower()}_knowledge_base"
+    upload_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "backend", "uploaded_docs", folder_name)
     if not os.path.exists(upload_dir):
         return []
     documents = [f for f in os.listdir(upload_dir) if os.path.isfile(os.path.join(upload_dir, f))]

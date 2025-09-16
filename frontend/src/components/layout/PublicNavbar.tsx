@@ -6,6 +6,7 @@ export const PublicNavbar = () => {
   const location = useLocation();
   const isLoginPage = location.pathname === "/login";
   const isSignupPage = location.pathname === "/signup";
+  const isUserPage = location.pathname === "/user";
 
   return (
     <div className="flex justify-center w-full pt-4 px-4">
@@ -36,13 +37,22 @@ export const PublicNavbar = () => {
           <a href="#" className="hover:text-white transition-colors">Pricing</a>
           <a href="#" className="hover:text-white transition-colors">Help</a>
           <span className="text-gray-600">|</span>
+          {!isUserPage && (
+            <Button 
+              onClick={() => navigate("/user")}
+              variant="ghost" 
+              className="text-gray-400 hover:text-white transition-colors bg-transparent hover:bg-transparent p-0 h-auto font-normal text-sm"
+            >
+              User
+            </Button>
+          )}
           {!isLoginPage && (
             <Button 
               onClick={() => navigate("/login")}
               variant="ghost" 
               className="text-gray-400 hover:text-white transition-colors bg-transparent hover:bg-transparent p-0 h-auto font-normal text-sm"
             >
-              Log in
+              Login
             </Button>
           )}
           {!isSignupPage && (

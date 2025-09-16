@@ -7,6 +7,9 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import User from "./pages/User";
+import UserDashboard from "./pages/UserDashboard";
+import Chat from "./pages/chat";
 import Admin from "./pages/Admin";
 import Bot from "./pages/Bot";
 import NotFound from "./pages/NotFound";
@@ -23,6 +26,9 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/user" element={<User />} />
+          <Route path="/chat" element={<Chat />} />
+          <Route path="/user-dashboard" element={<UserDashboard />} />
           <Route path="/admin" element={
             <ProtectedRoute>
               <Admin />

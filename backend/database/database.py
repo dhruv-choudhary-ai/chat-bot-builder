@@ -1,10 +1,9 @@
 import sqlalchemy
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey, Float, Boolean
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey, Float, Boolean, JSON, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 import datetime
 from sqlalchemy.orm import Session
-from sqlalchemy.dialects.postgresql import JSONB
 
 Base = sqlalchemy.orm.declarative_base()
 
@@ -27,7 +26,7 @@ class Conversation(Base):
     user = relationship("User")
 
     # Store the user query and LLM response as JSON
-    interaction = Column(JSONB, nullable=False)  # e.g., {"question": "...", "answer": "..."}
+    interaction = Column(JSON, nullable=False)  # e.g., {"question": "...", "answer": "..."}
 
     # Track if issue is resolved
     resolved = Column(Boolean, default=False)

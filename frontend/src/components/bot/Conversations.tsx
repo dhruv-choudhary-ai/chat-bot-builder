@@ -3,6 +3,8 @@ import { MessageSquare, User, Clock, Search, MoreVertical, Send } from "lucide-r
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { conversationsAPI } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   id: string;
@@ -15,78 +17,150 @@ interface Conversation {
   id: string;
   userId: string;
   userName: string;
-  userAvatar?: string;
+  userEmail: string;
   lastMessage: string;
   lastMessageTime: string;
   messageCount: number;
   status: 'open' | 'resolved';
   messages: Message[];
+  channel: string;
 }
 
-interface UserDetails {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  location?: string;
-  joinDate: string;
-  totalConversations: number;
-  lastActive: string;
-  status: 'online' | 'offline' | 'away';
+interface ConversationsProps {
+  botId?: string;
 }
 
-export const Conversations = () => {
-  const [selectedConversation, setSelectedConversation] = useState<string | null>('conv-1');
+export const Conversations = ({ botId }: ConversationsProps) => {
+  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [replyText, setReplyText] = useState('');
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [conversations, setConversations] = useState<Conversation[]>([
-    {
-      id: 'conv-1',
-      userId: 'user-1',
-      userName: 'John Smith',
-      lastMessage: 'Thanks for the help with my order!',
-      lastMessageTime: '2 min ago',
-      messageCount: 12,
-      status: 'open',
-      messages: [
-        { id: 'msg-1', content: 'Hi, I need help with my recent order', sender: 'user', timestamp: '10:30 AM' },
-        { id: 'msg-2', content: 'Hello! I\'d be happy to help you with your order. Can you provide your order number?', sender: 'bot', timestamp: '10:31 AM' },
-        { id: 'msg-3', content: 'Sure, it\'s #ORD-12345', sender: 'user', timestamp: '10:32 AM' },
-        { id: 'msg-4', content: 'I found your order. It\'s currently being processed and will ship within 2 business days.', sender: 'bot', timestamp: '10:33 AM' },
-        { id: 'msg-5', content: 'Thanks for the help with my order!', sender: 'user', timestamp: '10:35 AM' },
-      ]
-    },
-    {
-      id: 'conv-2',
-      userId: 'user-2',
-      userName: 'Sarah Johnson',
-      lastMessage: 'Can you help me reset my password?',
-      lastMessageTime: '15 min ago',
-      messageCount: 8,
-      status: 'open',
-      messages: [
-        { id: 'msg-6', content: 'I forgot my password and can\'t log in', sender: 'user', timestamp: '10:15 AM' },
-        { id: 'msg-7', content: 'I can help you reset your password. Please provide your email address.', sender: 'bot', timestamp: '10:16 AM' },
-        { id: 'msg-8', content: 'sarah.johnson@email.com', sender: 'user', timestamp: '10:17 AM' },
-        { id: 'msg-9', content: 'Can you help me reset my password?', sender: 'user', timestamp: '10:20 AM' },
-      ]
-    },
-    {
-      id: 'conv-3',
-      userId: 'user-3',
-      userName: 'Mike Davis',
-      lastMessage: 'Perfect, that solved my issue!',
-      lastMessageTime: '1 hour ago',
-      messageCount: 6,
-      status: 'resolved',
-      messages: [
-        { id: 'msg-10', content: 'Having trouble with the mobile app', sender: 'user', timestamp: '9:30 AM' },
-        { id: 'msg-11', content: 'I can help with that. What specific issue are you experiencing?', sender: 'bot', timestamp: '9:31 AM' },
-        { id: 'msg-12', content: 'Perfect, that solved my issue!', sender: 'user', timestamp: '9:35 AM' },
-      ]
-    }
-  ]);
+  const { toast } = useToast();
+
+  // Fetch conversations when botId changes
+  useEffect(() => {
+    if (!botId) return;
+
+    const fetchConversations = async () => {
+      try {
+        console.log("🤖 FETCHING CONVERSATIONS FOR BOT ID:", botId);
+        console.log("📡 API Endpoint:", `/admin/bots/${botId}/conversations`);
+        
+        // Use the simpler endpoint to get all conversations for this bot
+        const allConversations = await conversationsAPI.getBotAllConversations(parseInt(botId));
+        console.log("📊 Bot", botId, "conversations received:", allConversations.length);
+        console.log("📋 Raw conversations data:", allConversations);
+        
+        if (allConversations.length === 0) {
+          console.log("❌ No conversations found for bot", botId);
+          setConversations([]);
+          return;
+        }
+
+        // Group conversations by user
+        const conversationsByUser = new Map<number, any>();
+        
+        for (const conv of allConversations) {
+          const userId = conv.user_id;
+          
+          if (!conversationsByUser.has(userId)) {
+            // Get user details
+            try {
+              const user = await conversationsAPI.getBotUserDetails(parseInt(botId), userId);
+              conversationsByUser.set(userId, {
+                id: `${userId}-conversations`,
+                userId: userId.toString(),
+                userName: user.name || user.email.split('@')[0],
+                userEmail: user.email,
+                lastMessage: '',
+                lastMessageTime: '',
+                messageCount: 0,
+                status: 'open' as const,
+                messages: [] as Message[],
+                channel: conv.interaction.channel || 'web'
+              });
+            } catch (error) {
+              console.error(`Failed to fetch user ${userId} details:`, error);
+              // Use fallback user info
+              conversationsByUser.set(userId, {
+                id: `${userId}-conversations`,
+                userId: userId.toString(),
+                userName: `User ${userId}`,
+                userEmail: `user${userId}@example.com`,
+                lastMessage: '',
+                lastMessageTime: '',
+                messageCount: 0,
+                status: 'open' as const,
+                messages: [] as Message[],
+                channel: conv.interaction.channel || 'web'
+              });
+            }
+          }
+          
+          const userConv = conversationsByUser.get(userId)!;
+          const timestamp = new Date(conv.created_at).toLocaleTimeString([], { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          });
+          
+          // Add user question
+          if (conv.interaction.question) {
+            userConv.messages.push({
+              id: `${conv.id}-q`,
+              content: conv.interaction.question,
+              sender: 'user',
+              timestamp: timestamp
+            });
+          }
+          
+          // Add bot answer
+          if (conv.interaction.answer) {
+            userConv.messages.push({
+              id: `${conv.id}-a`,
+              content: conv.interaction.answer,
+              sender: 'bot',
+              timestamp: timestamp
+            });
+          }
+          
+          // Update last message and time
+          if (conv.interaction.answer) {
+            userConv.lastMessage = conv.interaction.answer;
+            userConv.lastMessageTime = new Date(conv.created_at).toLocaleString();
+          } else if (conv.interaction.question && !userConv.lastMessage) {
+            userConv.lastMessage = conv.interaction.question;
+            userConv.lastMessageTime = new Date(conv.created_at).toLocaleString();
+          }
+          
+          userConv.messageCount = userConv.messages.length;
+          userConv.status = conv.resolved ? 'resolved' : 'open';
+        }
+        
+        const processedConversations = Array.from(conversationsByUser.values());
+        console.log("✅ Bot", botId, "processed conversations:", processedConversations.length);
+        console.log("👥 Users found for bot", botId, ":", processedConversations.map(c => `${c.userName} (${c.userEmail})`));
+        console.log("📈 Conversation summary for bot", botId, ":", processedConversations.map(c => `${c.userName}: ${c.messageCount} messages`));
+        
+        setConversations(processedConversations);
+        
+        // Auto-select first conversation if none selected
+        if (processedConversations.length > 0 && !selectedConversation) {
+          setSelectedConversation(processedConversations[0].id);
+        }
+        
+      } catch (error) {
+        console.error('Failed to fetch conversations:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load conversations",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchConversations();
+  }, [botId, toast]);
 
   const handleSendReply = () => {
     if (!replyText.trim() || !selectedConversation) return;
@@ -131,48 +205,23 @@ export const Conversations = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [selectedConversation]);
 
-  const userDetails: { [key: string]: UserDetails } = {
-    'user-1': {
-      id: 'user-1',
-      name: 'John Smith',
-      email: 'john.smith@email.com',
-      phone: '+1 (555) 123-4567',
-      location: 'New York, NY',
-      joinDate: 'Jan 15, 2024',
-      totalConversations: 8,
-      lastActive: '2 min ago',
-      status: 'online'
-    },
-    'user-2': {
-      id: 'user-2',
-      name: 'Sarah Johnson',
-      email: 'sarah.johnson@email.com',
-      phone: '+1 (555) 234-5678',
-      location: 'Los Angeles, CA',
-      joinDate: 'Mar 22, 2024',
-      totalConversations: 12,
-      lastActive: '15 min ago',
-      status: 'away'
-    },
-    'user-3': {
-      id: 'user-3',
-      name: 'Mike Davis',
-      email: 'mike.davis@email.com',
-      location: 'Chicago, IL',
-      joinDate: 'Feb 10, 2024',
-      totalConversations: 5,
-      lastActive: '1 hour ago',
-      status: 'offline'
-    }
-  };
-
   const filteredConversations = conversations.filter(conv =>
     conv.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     conv.lastMessage.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const selectedConv = conversations.find(conv => conv.id === selectedConversation);
-  const selectedUser = selectedConv ? userDetails[selectedConv.userId] : null;
+  const selectedUser = selectedConv ? {
+    id: selectedConv.userId,
+    name: selectedConv.userName,
+    email: selectedConv.userEmail,
+    phone: '',
+    location: '',
+    joinDate: '',
+    totalConversations: 1,
+    lastActive: selectedConv.lastMessageTime,
+    status: selectedConv.status === 'open' ? 'online' : 'offline'
+  } : null;
 
   const getStatusColor = (status: string) => {
     switch (status) {
