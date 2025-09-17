@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageSquare, User, Clock, Search, MoreVertical, Send } from "lucide-react";
+import { MessageSquare, User, Clock, Search, MoreVertical, Send, Phone, Mail, MessageCircle, Globe, Send as SendIcon, Camera, MessagesSquare } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { conversationsAPI } from "@/lib/api";
@@ -37,6 +38,63 @@ export const Conversations = ({ botId }: ConversationsProps) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  const getChannelIcon = (channel?: string) => {
+    switch (channel) {
+      case 'whatsapp':
+        return <MessageCircle className="h-3 w-3" />
+      case 'sms':
+        return <Phone className="h-3 w-3" />
+      case 'email':
+        return <Mail className="h-3 w-3" />
+      case 'telegram':
+        return <SendIcon className="h-3 w-3" />
+      case 'instagram':
+        return <Camera className="h-3 w-3" />
+      case 'messenger':
+        return <MessagesSquare className="h-3 w-3" />
+      default:
+        return <Globe className="h-3 w-3" />
+    }
+  };
+
+  const getChannelName = (channel?: string) => {
+    switch (channel) {
+      case 'whatsapp':
+        return 'WhatsApp'
+      case 'sms':
+        return 'SMS'
+      case 'email':
+        return 'Email'
+      case 'telegram':
+        return 'Telegram'
+      case 'instagram':
+        return 'Instagram'
+      case 'messenger':
+        return 'Messenger'
+      default:
+        return 'Web'
+    }
+  };
+
+  const getChannelBadgeClass = (channel?: string) => {
+    switch (channel) {
+      case 'whatsapp':
+        return 'bg-green-900 text-green-200 border-green-700'
+      case 'sms':
+        return 'bg-blue-900 text-blue-200 border-blue-700'
+      case 'email':
+        return 'bg-purple-900 text-purple-200 border-purple-700'
+      case 'telegram':
+        return 'bg-cyan-900 text-cyan-200 border-cyan-700'
+      case 'instagram':
+        return 'bg-pink-900 text-pink-200 border-pink-700'
+      case 'messenger':
+        return 'bg-blue-900 text-blue-200 border-blue-700'
+      default:
+        return 'bg-gray-800 text-gray-200 border-gray-700'
+    }
+  };
 
   // Fetch conversations when botId changes
   useEffect(() => {
@@ -276,7 +334,15 @@ export const Conversations = ({ botId }: ConversationsProps) => {
                         <User className="h-5 w-5 text-gray-300" />
                       </div>
                       <div>
-                        <h4 className="text-white font-medium text-sm">{conv.userName}</h4>
+                        <h4 className="text-white font-medium text-sm flex items-center gap-2">
+                          <span>{conv.userName}</span>
+                          <Badge variant="outline" className={`px-1.5 py-0.5 text-[10px] ${getChannelBadgeClass(conv.channel)}`}>
+                            <span className="flex items-center gap-1">
+                              {getChannelIcon(conv.channel)}
+                              {getChannelName(conv.channel)}
+                            </span>
+                          </Badge>
+                        </h4>
                         <div className="flex items-center space-x-2">
                           <span className={`text-xs font-medium ${getStatusColor(conv.status)}`}>
                             {conv.status.charAt(0).toUpperCase() + conv.status.slice(1)}
@@ -306,7 +372,15 @@ export const Conversations = ({ botId }: ConversationsProps) => {
                   <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
                     <User className="h-4 w-4 text-gray-300" />
                   </div>
-                  <span>{selectedConv.userName}</span>
+                  <span className="flex items-center gap-2">
+                    {selectedConv.userName}
+                    <Badge variant="outline" className={`px-1.5 py-0.5 text-[10px] ${getChannelBadgeClass(selectedConv.channel)}`}>
+                      <span className="flex items-center gap-1">
+                        {getChannelIcon(selectedConv.channel)}
+                        {getChannelName(selectedConv.channel)}
+                      </span>
+                    </Badge>
+                  </span>
                 </div>
               ) : (
                 <span>Select a conversation</span>

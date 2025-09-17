@@ -106,7 +106,7 @@ export const Builder: React.FC<BuilderProps> = ({ botId }) => {
               <span className="text-xs text-gray-500">(PDF, TXT, DOC, DOCX)</span>
             </div>
             <div className="text-xs text-gray-500 mt-2">
-              Uploaded documents are currently global for all bots. Bot-specific upload coming soon.
+              Documents are stored per bot and used to train this bot's knowledge base.
             </div>
           </div>
 
